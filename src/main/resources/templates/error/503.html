@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Tente novamente')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5">
+    <h1 class="h2">Não foi possível concluir a operação agora</h1>
+    <p>O equipamento pode estar sendo atualizado por outra operação. Aguarde um momento e tente novamente.</p>
+    <a th:href="@{/equipamentos}" class="btn btn-primary">Voltar para equipamentos</a>
+</main>
+</body>
+</html>

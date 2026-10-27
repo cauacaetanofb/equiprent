@@ -284,17 +284,23 @@ Senhas de 12 a 64 caracteres usam PBKDF2 com salt aleatório e prefixo versionad
 
 ### Etapa 3 — Catálogo e condição física (depende da 2)
 
-- [ ] Criar formulário e service de equipamento com código único, categoria e diária.
-- [ ] Criar listagem, detalhes e edição para ADMIN.
-- [ ] Exibir catálogo consultável por CLIENTE.
-- [ ] Implementar manutenção, retorno a operacional e aposentadoria.
-- [ ] Adicionar busca por nome/código, filtro por categoria/condição e paginação.
+- [x] Criar formulário e service de equipamento com código único, categoria e diária.
+- [x] Criar listagem, detalhes e edição para ADMIN.
+- [x] Exibir catálogo consultável por CLIENTE.
+- [x] Implementar manutenção, retorno a operacional e aposentadoria.
+- [x] Adicionar busca por nome/código, filtro por categoria/condição e paginação.
 
-**Conclusão:** ADMIN mantém unidades individuais; cliente consulta; dados inválidos não persistem. Paginação tem tamanho limitado (proposta: 20, máximo 100), ordenação estável por ID como desempate e campos de ordenação permitidos explicitamente.
+**Conclusão:** ADMIN mantém unidades individuais; cliente consulta; dados inválidos não persistem. Paginação padrão de 20, limitada entre 1 e 100, ordenação estável por ID como desempate e campos de ordenação permitidos explicitamente.
 
 **Testes:** códigos duplicados, diária negativa/zero/mais de duas casas, campos vazios, permissões, filtros combinados, página vazia e limite de paginação. Testar manutenção e preservação do histórico.
 
 **Aprendizado:** validação em camadas, consultas paginadas e distinção entre formulário e entidade.
+
+**Decisões implementadas:** código patrimonial imutável, único e sensível a maiúsculas/minúsculas; busca parcial sem distinguir caixa, com curingas do SQL tratados literalmente. Rótulos em português e valores em reais. Cadastro sempre operacional, independente de campos extras enviados pelo navegador. Alterações de dados/preço e condição bloqueiam a linha do equipamento; preço histórico das reservas permanece intacto. Services revalidam papel e atividade no banco.
+
+Manutenção é proibida com `IN_USE`; com `RESERVED`, as reservas permanecem e aparecem paginadas apenas para ADMIN. Aposentadoria exige ausência de ambas as pendências, é definitiva e preserva histórico. CLIENTE não vê aposentados, inclusive por ID direto (404); ADMIN pode consultá-los e editar seus dados descritivos. Não há exclusão física. O tratamento de falha transitória nesta etapa apresenta página 503 para nova tentativa. Reservar/cancelar e a devolução com manutenção na mesma transação continuam nas etapas seguintes.
+
+**Resultado em 27/10/2026:** `clean verify` aprovado com 149 testes (2 unitário/MVC, 75 de persistência, 32 de segurança e 40 do catálogo), sem falhas/erros/ignorados. Inclui templates reais e concorrência: aposentadoria espera pelo bloqueio da unidade e revalida uma reserva confirmada pela outra transação. PostgreSQL 17 descartável, sem alterar V1 ou banco de desenvolvimento. JDK 21 efetivo e revisão visual manual ainda pendentes; execução realizada com JDK 25 e `release 21`.
 
 ### Etapa 4 — Disponibilidade, estimativa e criação (depende da 3)
 

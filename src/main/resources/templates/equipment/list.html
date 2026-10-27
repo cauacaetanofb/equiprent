@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Equipamentos')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div><p class="eyebrow text-secondary">CATÁLOGO</p><h1 class="h2 mb-0">Equipamentos</h1></div>
+        <a th:if="${isAdmin}" th:href="@{/admin/equipamentos/novo}" class="btn btn-primary">Cadastrar equipamento</a>
+    </div>
+    <p class="text-secondary">Cada item representa uma unidade física. A condição operacional não garante disponibilidade para um período específico.</p>
+    <form th:action="@{/equipamentos}" th:object="${filter}" method="get" class="card p-4 mb-4" aria-label="Filtros do catálogo">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
+            <p class="mb-1">Revise os filtros informados:</p>
+            <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-4">
+                <label for="q" class="form-label">Nome ou código patrimonial</label>
+                <input th:field="*{q}" type="search" class="form-control" maxlength="120" placeholder="Ex.: notebook ou NB-001">
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label for="category" class="form-label">Categoria</label>
+                <select th:field="*{category}" class="form-select">
+                    <option value="">Todas</option>
+                    <option th:each="category : ${categories}" th:value="${category}" th:text="${category.label}"></option>
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label for="condition" class="form-label">Condição física</label>
+                <select th:field="*{condition}" class="form-select">
+                    <option value="">Todas</option>
+                    <option th:each="condition : ${conditions}" th:value="${condition}" th:text="${condition.label}"></option>
+                </select>
+            </div>
+            <div class="col-md-6 col-lg-2">
+                <label for="sort" class="form-label">Ordenar por</label>
+                <select th:field="*{sort}" class="form-select">
+                    <option value="name">Nome</option><option value="priceAsc">Menor diária</option>
+                    <option value="priceDesc">Maior diária</option><option value="newest">Mais recentes</option>
+                </select>
+            </div>
+            <div class="col-md-6 col-lg-2">
+                <label for="size" class="form-label">Itens por página</label>
+                <input th:field="*{size}" type="number" min="1" max="100" class="form-control" required>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+            <a th:href="@{/equipamentos}" class="btn btn-outline-secondary">Limpar filtros</a>
+        </div>
+    </form>
+    <div th:if="${equipmentPage.empty}" class="card p-4">
+        <h2 class="h5">Nenhum equipamento encontrado</h2>
+        <p class="text-secondary mb-0">Confira os filtros ou volte à primeira página da busca.</p>
+        <a class="mt-3" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort})}">Primeira página</a>
+    </div>
+    <div th:unless="${equipmentPage.empty}" class="card overflow-hidden">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <caption class="visually-hidden">Unidades físicas de equipamentos cadastradas</caption>
+                <thead><tr><th scope="col">Equipamento</th><th scope="col">Categoria</th><th scope="col">Diária</th><th scope="col">Condição física</th></tr></thead>
+                <tbody><tr th:each="equipment : ${equipmentPage}">
+                    <td><a th:href="@{/equipamentos/{id}(id=${equipment.id})}" th:text="${equipment.name}"></a><small class="d-block text-secondary" th:text="${equipment.assetCode}"></small></td>
+                    <td th:text="${equipment.category.label}"></td>
+                    <td class="text-nowrap" th:text="|R$ ${#numbers.formatDecimal(equipment.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></td>
+                    <td><span class="badge" th:classappend="${equipment.condition.name() == 'OPERATIONAL' ? 'text-bg-success' : (equipment.condition.name() == 'MAINTENANCE' ? 'text-bg-warning' : 'text-bg-secondary')}" th:text="${equipment.condition.label}"></span></td>
+                </tr></tbody>
+            </table>
+        </div>
+    </div>
+    <nav class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4" aria-label="Paginação dos equipamentos">
+        <p class="small text-secondary mb-0" th:text="|${equipmentPage.totalElements} equipamento(s) encontrado(s)|"></p>
+        <div class="d-flex gap-2">
+            <a th:if="${equipmentPage.hasPrevious()}" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},page=${equipmentPage.number - 1})}" class="btn btn-outline-secondary">Anterior</a>
+            <a th:if="${equipmentPage.hasNext()}" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},page=${equipmentPage.number + 1})}" class="btn btn-outline-secondary">Próxima</a>
+        </div>
+    </nav>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

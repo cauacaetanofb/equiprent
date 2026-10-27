@@ -15,10 +15,17 @@
     </section>
     <section th:if="${isAdmin}" class="card p-4" aria-labelledby="admin-titulo">
         <h2 id="admin-titulo" class="h5">Administração</h2>
-        <p class="text-secondary">Cadastre clientes e gerencie os acessos ao sistema.</p>
-        <div><a class="btn btn-primary" th:href="@{/admin/clientes}">Gerenciar clientes</a></div>
+        <p class="text-secondary">Gerencie os clientes e as unidades físicas do catálogo.</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary" th:href="@{/equipamentos}">Gerenciar equipamentos</a>
+            <a class="btn btn-outline-secondary" th:href="@{/admin/clientes}">Gerenciar clientes</a>
+        </div>
     </section>
-    <p th:unless="${isAdmin}" class="text-secondary">Seu acesso está pronto. A consulta de equipamentos e as reservas estarão disponíveis nas próximas etapas do projeto.</p>
+    <section th:unless="${isAdmin}" class="card p-4">
+        <h2 class="h5">Conheça o catálogo</h2>
+        <p class="text-secondary">Consulte equipamentos, características e valores de diária. As reservas estarão disponíveis em uma próxima etapa.</p>
+        <div><a class="btn btn-primary" th:href="@{/equipamentos}">Consultar equipamentos</a></div>
+    </section>
 </main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>

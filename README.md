@@ -4,9 +4,9 @@ Sistema web de aluguel de equipamentos para pequenas empresas, desenvolvido como
 
 ## Situação atual
 
-**Implementado:** base Spring Boot, apresentação em português com Thymeleaf e Bootstrap local, PostgreSQL por ambiente, Compose, Maven Wrapper, modelo JPA e migração V1; login/logout por sessão, perfis ADMIN/CLIENTE, primeiro administrador por bootstrap opcional, página de conta e cadastro/listagem paginada/desativação de clientes pelo ADMIN. Há testes MVC, unitário e de integração com PostgreSQL.
+**Implementado:** base Spring Boot, apresentação em português com Thymeleaf e Bootstrap local, PostgreSQL por ambiente, Compose, Maven Wrapper, modelo JPA e migração V1; login/logout por sessão, perfis ADMIN/CLIENTE, primeiro administrador por bootstrap opcional, página de conta e cadastro/listagem paginada/desativação de clientes pelo ADMIN. Catálogo com cadastro/edição administrativa, consulta pelo cliente, busca, filtros, paginação e controle de manutenção/aposentadoria. Há testes MVC, unitário e de integração com PostgreSQL.
 
-**Planejado:** catálogo de equipamentos, manutenção, disponibilidade por período, reservas e cancelamentos, cálculo estimado, retirada, devolução, atrasos, consulta do histórico e filtros. Recuperação/troca de senha, reativação e cadastro público não fazem parte desta entrega. Consulte [PLANEJAMENTO.md](PLANEJAMENTO.md) para as regras e etapas.
+**Planejado:** disponibilidade por período, reservas e cancelamentos, cálculo estimado, retirada, devolução, atrasos e consulta do histórico de reservas. Recuperação/troca de senha, reativação e cadastro público não fazem parte desta entrega. Consulte [PLANEJAMENTO.md](PLANEJAMENTO.md) para as regras e etapas.
 
 ## Tecnologias e decisões
 
@@ -129,11 +129,34 @@ As quatro variáveis são opcionais: arquivos `.env` das etapas anteriores conti
 | `/conta` | Vai para login | Somente seus dados | Seus dados e atalho administrativo |
 | `/admin/clientes` e `/admin/clientes/novo` | Vai para login | 403 | Sim |
 | Cadastrar/desativar cliente | Não | 403 | Sim, via POST com CSRF |
+| `/equipamentos` e `/equipamentos/{id}` | Vai para login | Unidades operacionais/em manutenção | Todas as unidades |
+| `/admin/equipamentos/novo` e `/admin/equipamentos/{id}/editar` | Vai para login | 403 | Sim |
+| Cadastrar/editar equipamento e alterar condição | Não | 403 | Sim, via POST com CSRF |
 | Sair da conta | — | POST com CSRF | POST com CSRF |
 
 O cadastro sempre cria `CLIENTE` ativo, mesmo que alguém tente enviar campos como `role=ADMIN`, `id` ou `active`. A listagem tem 20 registros por página e não envia hashes às views. Desativar exige ausência de reservas `RESERVED`/`IN_USE`; reservas finalizadas e eventos são preservados. O fluxo não desativa administradores.
 
 Contas desativadas não conseguem entrar. Uma sessão já aberta é invalidada na próxima requisição; o service também consulta o estado e o papel atuais no banco antes das operações administrativas. Sessões expiram após 30 minutos de inatividade. GET não efetua logout nem desativação.
+
+### Catálogo e condição física
+
+Abra **Minha conta → Equipamentos** ou **http://localhost:8080/equipamentos**. ADMIN cadastra uma unidade por código patrimonial; CLIENTE consulta unidades operacionais ou em manutenção. O código é único, diferencia maiúsculas/minúsculas e fica imutável após o cadastro. Nome, descrição, categoria e diária podem ser editados. A diária aceita de R$ 0,01 a R$ 9.999.999.999,99, com até duas casas decimais; alterar o preço não recalcula reservas existentes.
+
+A busca por trecho de nome/código ignora maiúsculas/minúsculas, trata `%` e `_` como caracteres literais e combina categoria e condição. A listagem começa com 20 itens por página, permite entre 1 e 100, preserva filtros nos links e aceita somente nome, menor/maior diária ou data de cadastro como ordenação. O ID desempata resultados iguais.
+
+Condição física não é disponibilidade por período. Todas as unidades nascem operacionais. O ADMIN pode colocá-las em manutenção e retornar à operação; manutenção é recusada enquanto houver reserva `IN_USE`. Reservas `RESERVED` são preservadas e aparecem em uma lista de pendências de 10 itens por página, visível apenas ao ADMIN. A aposentadoria exige ausência de reservas `RESERVED`/`IN_USE`, é definitiva e oculta a unidade do catálogo do CLIENTE, inclusive no acesso direto por ID. ADMIN continua consultando e editando seus dados; reservas e eventos não são apagados.
+
+Edição de dados/preço e alteração de condição usam `PESSIMISTIC_WRITE` no equipamento dentro da transação. As futuras operações de reserva devem compartilhar esse bloqueio. Uma falha transitória de acesso ao banco apresenta uma página com orientação para tentar novamente, sem confirmar alteração parcial. A etapa 3 não cria endpoints de reserva, retirada, devolução ou cancelamento, e não altera a migração V1.
+
+Roteiro manual, depois de iniciar com `Start-Local.ps1`:
+
+1. Entre como ADMIN e cadastre `NB-001`, nome `Notebook de teste`, descrição, categoria Notebook e diária `49.90` (ou um código ainda não utilizado).
+2. Confira o valor `R$ 49,90` nos detalhes. Edite nome/descrição/diária e verifique que o código permanece fixo.
+3. Tente cadastrar outra unidade com o mesmo código e confira a mensagem de duplicidade. Teste filtros por nome, código, categoria e condição.
+4. Coloque a unidade em manutenção e consulte-a como CLIENTE em uma janela privada: a condição aparece, sem controles administrativos.
+5. Volte à conta ADMIN, retorne à operação e aposente **essa unidade de teste**. Ela permanece na consulta administrativa e deixa de aparecer para o CLIENTE. A aposentadoria não pode ser desfeita.
+
+Pendências de reservas e concorrência são verificadas automaticamente com dados fictícios em PostgreSQL descartável. A interface de reservas será construída nas próximas etapas.
 
 ### Senhas e formulários
 
@@ -170,7 +193,7 @@ Com PostgreSQL já instalado, use um banco vazio dedicado e as credenciais corre
 
 Com Docker Desktop em execução, esse comando compila para Java 21, executa os testes unitário/MVC (Surefire), gera `target/equiprent-0.0.1-SNAPSHOT.jar` e executa os testes de integração `*IT` (Failsafe). Não é necessário carregar `.env` nem iniciar o banco do Compose para testar.
 
-O Testcontainers cria PostgreSQL 17 em porta aleatória e o remove ao terminar. `PersistenceIT` e `SecurityIT` substituem explicitamente URL, usuário e senha do datasource pelas credenciais de seus contêineres. Os testes de segurança usam contas fictícias e bootstrap configurado no próprio teste; o teste de persistência desabilita o bootstrap. A migração e os testes nunca usam o volume ou as credenciais do seu banco de desenvolvimento. O primeiro teste pode demorar mais para baixar a imagem. Docker indisponível faz a suite completa **falhar**, em vez de ignorar os testes silenciosamente.
+O Testcontainers cria PostgreSQL 17 em porta aleatória e o remove ao terminar. `PersistenceIT`, `SecurityIT` e `EquipmentIT` substituem explicitamente URL, usuário e senha do datasource pelas credenciais de seus contêineres. Os testes de segurança usam contas fictícias e bootstrap configurado no próprio teste; os testes de persistência e catálogo desabilitam o bootstrap. A migração e os testes nunca usam o volume ou as credenciais do seu banco de desenvolvimento. O primeiro teste pode demorar mais para baixar a imagem. Docker indisponível faz a suite completa **falhar**, em vez de ignorar os testes silenciosamente.
 
 Para executar somente os testes rápidos, sem Docker:
 
@@ -214,7 +237,8 @@ src/main/java/com/equiprent/
   home/HomeController.java
   user/{User,UserRole,UserRepository,UserForm,UserSummary,UserService,UserController}.java
   security/{SecurityConfig,CustomUserDetailsService,CurrentUser,ActiveUserFilter,AdminBootstrap,...}.java
-  equipment/{Equipment,EquipmentCategory,EquipmentCondition,EquipmentRepository}.java
+  equipment/{Equipment,EquipmentCategory,EquipmentCondition,EquipmentRepository,EquipmentService,...}.java
+  equipment/{EquipmentController,EquipmentAdminController,EquipmentForm,EquipmentFilter,...}.java
   reservation/{Reservation,ReservationStatus,ReservationEvent,ReservationRepository,ReservationEventRepository}.java
 src/main/resources/
   application.yaml
@@ -223,12 +247,14 @@ src/main/resources/
   templates/home/index.html
   templates/security/{login,account}.html
   templates/user/{form,list}.html
+  templates/equipment/{form,list,details}.html
   templates/fragments/layout.html
-  templates/error/{403,404}.html
+  templates/error/{403,404,503}.html
   static/css/app.css
   static/vendor/bootstrap/
 src/test/java/com/equiprent/home/HomeControllerTest.java
 src/test/java/com/equiprent/equipment/EquipmentTest.java
+src/test/java/com/equiprent/equipment/EquipmentIT.java
 src/test/java/com/equiprent/persistence/PersistenceIT.java
 src/test/java/com/equiprent/security/SecurityIT.java
 PLANEJAMENTO.md
@@ -238,7 +264,7 @@ O Flyway é a única fonte de mudanças no esquema. `ddl-auto: validate` impede 
 
 Os relacionamentos são `ManyToOne` com carregamento `LAZY` e sem cascata de exclusão. O banco impede excluir usuários, equipamentos e reservas referenciados pelo histórico. Enums são textos com `CHECK`; valores monetários usam `BigDecimal` e `numeric`, com snapshot da diária na reserva. Eventos são imutáveis pelo mapeamento JPA. Limites de campos e responsabilidades do banco versus services estão no planejamento.
 
-Autorização de clientes já existe nos filtros e no service. Disponibilidade, concorrência e operações sobre reservas ainda serão implementadas. Os repositories não são expostos como endpoints HTTP. A etapa 2 reutiliza a V1 existente, sem alterar seu checksum nem exigir outra migração.
+Autorização de clientes e equipamentos já existe nos filtros e nos services. Alterações no equipamento têm bloqueio transacional; disponibilidade e operações concorrentes sobre reservas ainda serão implementadas. Os repositories não são expostos como endpoints HTTP. As etapas 2 e 3 reutilizam a V1 existente, sem alterar seu checksum nem exigir outra migração.
 
 ## Validação da etapa 2 — 27/10/2026
 
@@ -254,6 +280,14 @@ Autorização de clientes já existe nos filtros e no service. Disponibilidade, 
 
 Não houve instalação global de ferramentas nem publicação do projeto.
 
+## Validação da etapa 3 — 27/10/2026
+
+- `.\mvnw.cmd -B -ntp clean verify`: **BUILD SUCCESS**, **149 testes** (2 unitário/MVC, 75 de persistência, 32 de segurança e 40 do catálogo), sem falhas, erros ou testes ignorados; JAR executável gerado.
+- `EquipmentIT` valida templates reais, permissões/CSRF, cadastro, duplicidade, campos extras, limites e precisão de preço, edição com código fixo, preço histórico, condições e reservas pendentes, preservação de eventos, busca/filtros, caracteres literais, paginação estável e limitada, aposentados ocultos do CLIENTE e 404.
+- O teste concorrente usa duas transações reais: mantém a linha do equipamento bloqueada, observa a segunda transação aguardando no PostgreSQL, confirma uma reserva e verifica que a aposentadoria reconsulta as pendências e é recusada. Isso valida o bloqueio do catálogo; os testes de criação concorrente de reservas pertencem à etapa 4.
+- Migração V1 intacta, banco de desenvolvimento preservado e `.env`/`.local` continuam ignorados pelo Git. Nenhuma dependência nova.
+- Executado com JDK 25 e `release 21`. Execução efetiva em JDK 21 e revisão visual manual no navegador continuam pendentes; os templates foram exercitados por MockMvc.
+
 ## Próximo passo
 
-Executar a etapa 3 do [planejamento](PLANEJAMENTO.md): catálogo de equipamentos, formulário e edição pelo ADMIN, consulta pelo CLIENTE, manutenção, aposentadoria, busca e paginação. O foco será aplicar validação e autorização ao catálogo e distinguir condição física de disponibilidade por período.
+Executar a etapa 4 do [planejamento](PLANEJAMENTO.md): consulta de disponibilidade por período, cálculo de diárias inclusivas, estimativa no servidor e criação da reserva com snapshot de preço e evento. Reutilizar os bloqueios de cliente/equipamento para impedir reservas simultâneas conflitantes e revalidar as regras dentro da transação.

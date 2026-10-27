@@ -17,3 +17,4 @@ body { background: #f7f8f5; color: var(--equiprent-ink); }
 .form-card { max-width: 42rem; }
 .btn-primary { --bs-btn-bg: #236852; --bs-btn-border-color: #236852; --bs-btn-hover-bg: #18342e; --bs-btn-hover-border-color: #18342e; --bs-btn-active-bg: #18342e; --bs-btn-active-border-color: #18342e; }
 .table th, .table td { padding: 1rem; }
+.equipment-description { white-space: pre-wrap; }

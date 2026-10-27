@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${equipment.name})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5">
+    <a th:href="@{/equipamentos}">Voltar para equipamentos</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 mb-4">
+        <div><p class="eyebrow text-secondary" th:text="${equipment.assetCode}"></p><h1 class="h2 mb-0" th:text="${equipment.name}"></h1></div>
+        <a th:if="${isAdmin}" th:href="@{/admin/equipamentos/{id}/editar(id=${equipment.id})}" class="btn btn-outline-primary">Editar equipamento</a>
+    </div>
+    <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <section class="card p-4 h-100" aria-labelledby="detalhes-titulo">
+                <h2 id="detalhes-titulo" class="h5 mb-3">Sobre esta unidade</h2>
+                <p class="equipment-description text-break" th:text="${equipment.description}"></p>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Categoria</dt><dd class="col-sm-8" th:text="${equipment.category.label}"></dd>
+                    <dt class="col-sm-4">Condição física</dt><dd class="col-sm-8" th:text="${equipment.condition.label}"></dd>
+                </dl>
+            </section>
+        </div>
+        <div class="col-lg-4">
+            <section class="card p-4 h-100" aria-labelledby="valor-titulo">
+                <h2 id="valor-titulo" class="h6 text-secondary">Valor da diária</h2>
+                <p class="h2" th:text="|R$ ${#numbers.formatDecimal(equipment.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></p>
+                <p th:if="${equipment.condition.name() == 'OPERATIONAL'}" class="text-secondary mb-0">Unidade operacional. A disponibilidade depende do período de aluguel.</p>
+                <p th:if="${equipment.condition.name() == 'MAINTENANCE'}" class="text-secondary mb-0">Esta unidade está em manutenção e não pode receber novas reservas.</p>
+                <p th:if="${equipment.condition.name() == 'RETIRED'}" class="text-secondary mb-0">Esta unidade foi aposentada. Seu cadastro permanece para preservar o histórico.</p>
+            </section>
+        </div>
+    </div>
+    <section th:if="${isAdmin and equipment.condition.name() != 'RETIRED'}" class="card p-4 mt-4" aria-labelledby="condicao-titulo">
+        <h2 id="condicao-titulo" class="h5">Alterar condição física</h2>
+        <p class="text-secondary">Manutenção exige que a unidade esteja devolvida. A aposentadoria é definitiva e exige que todas as reservas estejam encerradas ou canceladas.</p>
+        <form th:action="@{/admin/equipamentos/{id}/condicao(id=${equipment.id})}" th:object="${conditionForm}" method="post" class="row g-3 align-items-end">
+            <div class="col-sm-6 col-lg-4">
+                <label for="condition" class="form-label">Condição</label>
+                <select th:field="*{condition}" class="form-select" required>
+                    <option th:each="condition : ${conditions}" th:value="${condition}" th:text="${condition.label}"></option>
+                </select>
+            </div>
+            <div class="col-sm-auto"><button type="submit" class="btn btn-primary">Confirmar alteração</button></div>
+        </form>
+    </section>
+    <section th:if="${isAdmin and affectedReservations != null and !affectedReservations.empty}" class="card p-4 mt-4" aria-labelledby="afetadas-titulo">
+        <h2 id="afetadas-titulo" class="h5">Reservas pendentes afetadas pela manutenção</h2>
+        <p class="text-secondary">Estas reservas foram preservadas. Regularize a manutenção ou as reservas antes de realizar a retirada.</p>
+        <div class="table-responsive">
+            <table class="table">
+                <thead><tr><th scope="col">Reserva</th><th scope="col">Início</th><th scope="col">Fim</th></tr></thead>
+                <tbody><tr th:each="reservation : ${affectedReservations}">
+                    <td th:text="|#${reservation.id}|"></td>
+                    <td th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></td>
+                    <td th:text="${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}"></td>
+                </tr></tbody>
+            </table>
+        </div>
+        <nav class="d-flex gap-2" aria-label="Paginação das reservas afetadas">
+            <a th:if="${affectedReservations.hasPrevious()}" th:href="@{/equipamentos/{id}(id=${equipment.id},affectedPage=${affectedReservations.number - 1})}">Anterior</a>
+            <a th:if="${affectedReservations.hasNext()}" th:href="@{/equipamentos/{id}(id=${equipment.id},affectedPage=${affectedReservations.number + 1})}">Próxima</a>
+        </nav>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

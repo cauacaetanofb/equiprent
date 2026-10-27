@@ -21,6 +21,7 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/", "/login", "/css/**", "/vendor/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/equipamentos", "/equipamentos/**").authenticated()
                         .requestMatchers("/conta").authenticated()
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/login").usernameParameter("email")

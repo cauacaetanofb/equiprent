@@ -67,6 +67,21 @@ public class Equipment {
         return id;
     }
 
+    public void updateDetails(String name, String description, EquipmentCategory category,
+                              BigDecimal dailyRate, Instant updatedAt) {
+        this.name = Objects.requireNonNull(name).strip();
+        this.description = Objects.requireNonNull(description).strip();
+        this.category = Objects.requireNonNull(category);
+        this.dailyRate = Objects.requireNonNull(dailyRate).setScale(2, RoundingMode.UNNECESSARY);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
+    // O service verifica as reservas pendentes enquanto mantém o bloqueio da unidade.
+    public void changeCondition(EquipmentCondition condition, Instant updatedAt) {
+        this.condition = Objects.requireNonNull(condition);
+        this.updatedAt = Objects.requireNonNull(updatedAt);
+    }
+
     public String getAssetCode() {
         return assetCode;
     }
