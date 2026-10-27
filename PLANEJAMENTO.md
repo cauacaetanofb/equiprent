@@ -4,7 +4,7 @@
 
 Organizar a locação de equipamentos de uma pequena empresa, substituindo controles dispersos por um catálogo de unidades físicas, reservas por período e histórico de retirada e devolução. O projeto deve demonstrar fundamentos de desenvolvimento web, integridade de dados, autorização e testes em entrevistas de estágio e nível júnior.
 
-**Entrega atual:** estrutura executável, página inicial e este planejamento. As entidades, regras, telas e rotas descritas a seguir são propostas para as próximas etapas; ainda não estão implementadas.
+**Entrega atual:** base executável, página inicial, entidades JPA, repositories e primeira migração, com testes em PostgreSQL. As etapas 0 e 1 estão implementadas; a execução em JDK 21 permanece uma verificação de ambiente pendente. Autenticação, telas de cadastro e operações de reserva ainda não estão implementadas. As regras operacionais abaixo orientam as próximas etapas.
 
 ### Primeira versão
 
@@ -29,14 +29,14 @@ com.equiprent
   EquipRentApplication
   home/
     HomeController                         # existe
-  user/                                    # futuro
+  user/                                    # entidades e repository implementados
     User, UserRole, UserRepository
     UserService, UserController, UserForm
-  equipment/                               # futuro
+  equipment/                               # entidades e repository implementados
     Equipment, EquipmentCondition, EquipmentCategory
     EquipmentRepository, EquipmentService, EquipmentController
     EquipmentForm, EquipmentSummary
-  reservation/                             # futuro
+  reservation/                             # entidades e repositories implementados
     Reservation, ReservationStatus, ReservationEvent
     ReservationRepository, ReservationEventRepository
     ReservationService, AvailabilityService, ReservationController
@@ -48,8 +48,10 @@ com.equiprent
 
 resources/templates/{home,user,equipment,reservation}/
 resources/static/{css,vendor}/
-resources/db/migration/V1__create_initial_schema.sql  # somente na modelagem
+resources/db/migration/V1__create_initial_schema.sql  # implementada
 ```
+
+Os services, controllers, formulários e objetos de saída listados nessa árvore (exceto `HomeController`) continuam planejados. Não foram criadas classes vazias para eles.
 
 O controller recebe formulários, valida entradas e escolhe a view. O service aplica regras, autorização por proprietário e transações. O repository consulta e persiste. Entidades representam o estado persistente; formulários não recebem campos como papel, proprietário ou preço histórico do navegador. Objetos de saída são introduzidos quando necessários para montar views sem consultas fora do service.
 
@@ -57,7 +59,7 @@ Flyway controla o esquema e Hibernate apenas o valida (`ddl-auto=validate`). `op
 
 **Por que isso é explicável em uma entrevista:** a arquitetura acompanha a complexidade de uma empresa pequena; mantém regras testáveis em services, usa transações reais para concorrência e renderiza HTML no servidor sem duplicar a aplicação em duas tecnologias.
 
-## 3. Modelo de dados proposto
+## 3. Modelo de dados implementado na etapa 1
 
 IDs `Long` gerados no banco. Nomes de tabelas em inglês, evitando `user` como nome SQL reservado: usar `app_user`. Enums persistidos como texto (`EnumType.STRING`), com restrições SQL coerentes. Datas do aluguel como `LocalDate`/`date`; instantes de auditoria como `Instant`/`timestamptz`.
 
@@ -89,7 +91,7 @@ erDiagram
         bigint id PK
         varchar asset_code UK
         varchar name
-        text description
+        varchar description
         varchar category
         numeric daily_rate
         varchar condition
@@ -117,13 +119,31 @@ erDiagram
         varchar previous_status
         varchar new_status
         timestamptz occurred_at
-        text note
+        varchar note
     }
 ```
 
-Chaves estrangeiras obrigatórias e sem exclusão em cascata. `customerId` deve apontar para um CLIENTE; a verificação é do service. Criar índices para consultas por equipamento/status/período, cliente/data de criação e evento/reserva/instante. Validar planos e ajustar índices quando as consultas existirem, sem antecipar otimizações.
+Chaves estrangeiras obrigatórias e com `ON DELETE RESTRICT`, sem cascatas JPA. `customerId` deve apontar para um CLIENTE; essa regra entre registros será validada no futuro service. Já existem índices por equipamento/status/período, cliente/data de criação, evento/reserva/instante e autor do evento. Validar planos e ajustar índices quando as consultas de negócio existirem, sem antecipar otimizações.
 
 Restrições de banco: fim >= início, diária e total positivos, valores de enums válidos e timestamps compatíveis com o estado. Preço e total são snapshots imutáveis; alteração do catálogo não reescreve reservas. O código patrimonial permanece estável para identificar o item mesmo se nome ou descrição mudarem. O histórico não pretende guardar cada edição de perfil ou descrição; essa auditoria ampliada é evolução futura.
+
+### Decisões consolidadas na modelagem
+
+| Campo | Limite e comportamento |
+| --- | --- |
+| Nome de usuário/equipamento | 120 caracteres; obrigatório e não vazio |
+| E-mail | 254 caracteres; normalizado com `strip()` e `toLowerCase(Locale.ROOT)`; banco exige forma normalizada e unicidade |
+| Hash da senha | 255 caracteres; recebe hash pronto, sem implementar codificação/login nesta etapa |
+| Código patrimonial | 50 caracteres; sem espaços nas extremidades, único e sensível a maiúsculas/minúsculas |
+| Descrição de equipamento | 2.000 caracteres; obrigatória e não vazia |
+| Nota do evento | 1.000 caracteres; opcional |
+| Papel, categoria, condição e status | `varchar(20)` com enum Java e `CHECK` no banco |
+
+Construtores JPA protegidos e construtores explícitos para criação; sem setters genéricos. Relações `ManyToOne` usam `LAZY`, sem listas bidirecionais desnecessárias. O chamador informa os instantes; na etapa de negócio eles virão de um `Clock` injetado. Código patrimonial, datas e valores contratados não são atualizáveis pelo mapeamento JPA. Eventos usam `@Immutable` e repository sem método de exclusão; isso não impede alterações via SQL administrativo.
+
+O construtor monetário usa escala 2 com `RoundingMode.UNNECESSARY`, rejeitando frações de centavo antes de o PostgreSQL arredondá-las. Positividade e precisão máxima são protegidas no banco. Validação dos formulários com mensagens amigáveis será adicionada nas próximas etapas.
+
+A V1 verifica a coerência de cada par de estados em um evento e dos timestamps de cada reserva. Ela ainda não garante a sequência completa entre eventos, um evento para toda alteração, o perfil do autor, disponibilidade ou ausência de reservas sobrepostas. Os testes de persistência não substituem os futuros testes de service, autorização e concorrência. Os SQLs que simulam alterações nos testes servem apenas para validar o modelo.
 
 ## 4. Regras de negócio e premissas
 
@@ -203,7 +223,7 @@ Cancelamento é permitido enquanto `RESERVED`, inclusive após o começo previst
 
 Cada etapa termina com código, testes e README atualizados. Os critérios abaixo são gates: não marcar concluída só porque a tela aparece. A sequência evita implementar operações de negócio antes de haver modelagem e autorização.
 
-### Etapa 0 — Base inicial (esta entrega)
+### Etapa 0 — Base inicial
 
 - [x] Inspecionar pasta e instruções existentes.
 - [x] Fixar Java, Spring Boot e Maven Wrapper.
@@ -212,28 +232,31 @@ Cada etapa termina com código, testes e README atualizados. Os critérios abaix
 - [x] Preparar Flyway sem entidades nem migrações de domínio.
 - [x] Criar teste MVC e documentação de uso e planejamento.
 - [x] Compilar, executar teste e empacotar pelo Wrapper.
-- [ ] Validar inicialização completa contra PostgreSQL e execução em JDK 21.
+- [x] Validar inicialização completa contra PostgreSQL (confirmada pelo usuário e pelos testes da etapa 1).
+- [ ] Validar execução em JDK 21.
 
-**Conclusão:** build e teste MVC aprovados; ambiente com Java 21 e PostgreSQL permite abrir `/`. Na entrega atual, o último item permanece pendente porque só há JDK 25 e não há Docker/PostgreSQL disponível. A compilação usa `release 21`.
+**Conclusão:** build, teste MVC e inicialização completa com PostgreSQL aprovados. Docker agora está disponível. A máquina consultada continua usando JDK 25 com compilação `release 21`; execução efetiva em JDK 21 permanece pendente.
 
-**Testes:** HTTP 200, template real resolvido, idioma, conteúdo de apresentação e URLs CSS. Validação manual futura: banco saudável, log de inicialização e página acessível com CSS local.
+**Testes:** HTTP 200, template real resolvido, idioma, conteúdo de apresentação e URLs CSS. Na etapa 1, a resposta HTTP também foi validada com servidor real e PostgreSQL.
 
 **Aprendizado:** ciclo Maven, auto-configuração, MVC, configuração externa e responsabilidades do Flyway.
 
 ### Etapa 1 — Modelo e migração (depende da 0)
 
-- [ ] Revisar premissas e definir tamanhos máximos dos campos.
-- [ ] Criar entidades e enums sem telas de negócio.
-- [ ] Escrever `V1__create_initial_schema.sql` com chaves, checks e índices iniciais.
-- [ ] Criar repositories necessários e mapeamentos explícitos.
-- [ ] Adicionar testes Spring Data JPA com PostgreSQL Testcontainers e suporte Flyway.
-- [ ] Verificar banco vazio e segunda inicialização sem mudanças indevidas.
+- [x] Revisar premissas e definir tamanhos máximos dos campos.
+- [x] Criar entidades e enums sem telas de negócio.
+- [x] Escrever `V1__create_initial_schema.sql` com chaves, checks e índices iniciais.
+- [x] Criar repositories necessários e mapeamentos explícitos.
+- [x] Adicionar testes Spring Data JPA com PostgreSQL Testcontainers e suporte Flyway.
+- [x] Verificar banco vazio e segunda inicialização sem mudanças indevidas.
 
 **Conclusão:** migração sobe do zero, Hibernate valida o esquema e relações persistem sem apagar histórico. Nenhum `ddl-auto=update` ou migração já aplicada editada.
 
 **Testes:** unicidade de e-mail normalizado e código patrimonial; FK obrigatória; rejeição de período invertido/preços inválidos; valores `BigDecimal` preservados e rollback. Não substituir PostgreSQL por H2 nos testes de integração.
 
 **Aprendizado:** cardinalidade, restrições, migrações e precisão monetária.
+
+**Resultado em 27/10/2026:** `clean verify` aprovado com 2 testes unitário/MVC e 75 casos de integração, zero falhas/erros/ignorados. O teste de integração sobe a aplicação completa, valida o esquema com Hibernate, consulta os repositories e reinicia o contexto sobre o mesmo banco. Usa PostgreSQL 17 temporário, sem ler o `.env` ou modificar o volume de desenvolvimento.
 
 ### Etapa 2 — Autenticação, perfis e clientes (depende da 1)
 
@@ -361,11 +384,9 @@ As seguintes propostas permitem avançar sem bloquear a base, mas devem ser revi
 | Limite de período | Até 365 diárias; dias inclusivos | Etapa 4 |
 | Cadastro de clientes | Somente ADMIN; sem cadastro público | Etapa 2 |
 | Primeiro administrador | Bootstrap local configurado por ambiente, sem senha fixa | Etapa 2 |
-| Contato do cliente | Nome e e-mail bastam; telefone só se necessário | Etapa 1 |
 | Manutenção com reservas futuras | Manter reservas, impedir retirada e sinalizar ao ADMIN | Etapas 3 e 6 |
 | Devolução antecipada | Libera uso após conferência, sem recálculo do contrato | Etapa 6 |
 | Atraso em uso | Bloquear novas reservas de qualquer período até regularização | Etapas 4 e 6 |
 | Horário comercial e tolerância | Sem janela de horas; prazo por dia civil | Antes de uso real |
-| Edição de dados históricos | Preservar vínculo, código, diária e eventos; sem snapshot completo de nomes | Etapa 1 |
 
 Não introduzir pagamento, multas, mensagens assíncronas ou múltiplas empresas para resolver essas pendências. Registrar qualquer mudança de regra junto dos exemplos e testes correspondentes.
