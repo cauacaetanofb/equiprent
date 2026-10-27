@@ -43,10 +43,10 @@ public class User {
     protected User() {
     }
 
-    // Recebe um hash já produzido pelo futuro fluxo de autenticação, nunca senha em texto.
+    // Recebe um hash já produzido pelo PasswordEncoder, nunca senha em texto.
     public User(String name, String email, String passwordHash, UserRole role, Instant createdAt) {
         this.name = Objects.requireNonNull(name).strip();
-        this.email = Objects.requireNonNull(email).strip().toLowerCase(Locale.ROOT);
+        this.email = normalizeEmail(email);
         this.passwordHash = Objects.requireNonNull(passwordHash);
         this.role = Objects.requireNonNull(role);
         this.active = true;
@@ -55,6 +55,14 @@ public class User {
 
     public Long getId() {
         return id;
+    }
+
+    public static String normalizeEmail(String email) {
+        return Objects.requireNonNull(email).strip().toLowerCase(Locale.ROOT);
+    }
+
+    public void deactivate() {
+        this.active = false;
     }
 
     public String getName() {

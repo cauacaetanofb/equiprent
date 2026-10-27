@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Novo cliente')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5">
+    <section class="card form-card mx-auto p-4 p-md-5" aria-labelledby="titulo">
+        <a th:href="@{/admin/clientes}" class="mb-4">Voltar para clientes</a>
+        <p class="eyebrow text-secondary">ADMINISTRAÇÃO</p>
+        <h1 id="titulo" class="h2">Novo cliente</h1>
+        <p class="text-secondary mb-4">O cliente poderá acessar sua conta com o e-mail e a senha definidos aqui.</p>
+        <form th:action="@{/admin/clientes}" th:object="${userForm}" method="post">
+            <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">Revise os campos indicados. Por segurança, preencha a senha novamente.</div>
+            <div class="mb-3">
+                <label for="name" class="form-label">Nome completo</label>
+                <input th:field="*{name}" class="form-control" th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'" th:attr="aria-invalid=${#fields.hasErrors('name')}" aria-describedby="name-error" maxlength="120" autocomplete="name" required>
+                <div id="name-error" class="invalid-feedback" th:errors="*{name}"></div>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">E-mail</label>
+                <input th:field="*{email}" type="email" class="form-control" th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'" th:attr="aria-invalid=${#fields.hasErrors('email')}" aria-describedby="email-error" maxlength="254" autocomplete="email" required>
+                <div id="email-error" class="invalid-feedback" th:errors="*{email}"></div>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label">Senha de acesso</label>
+                <!-- Sem th:field/value para nunca devolver a senha no HTML. -->
+                <input id="password" name="password" type="password" class="form-control" th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'" th:attr="aria-invalid=${#fields.hasErrors('password')}" aria-describedby="password-help password-error" minlength="12" maxlength="64" autocomplete="new-password" required>
+                <div id="password-help" class="form-text">Use de 12 a 64 caracteres. Entregue o acesso ao cliente por um canal privado.</div>
+                <div id="password-error" class="invalid-feedback" th:errors="*{password}"></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Cadastrar cliente</button>
+            <a th:href="@{/admin/clientes}" class="btn btn-outline-secondary ms-2">Cancelar</a>
+        </form>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

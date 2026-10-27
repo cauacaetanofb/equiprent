@@ -62,6 +62,7 @@ class PersistenceIT {
 
     @DynamicPropertySource
     static void configureDatabase(DynamicPropertyRegistry registry) {
+        registry.add("equiprent.bootstrap.enabled", () -> false);
         // Substitui a conexão inteira: nunca usa .env nem o banco de desenvolvimento.
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
@@ -130,6 +131,7 @@ class PersistenceIT {
                 .run("--spring.datasource.url=" + POSTGRES.getJdbcUrl(),
                         "--spring.datasource.username=" + POSTGRES.getUsername(),
                         "--spring.datasource.password=" + POSTGRES.getPassword(),
+                        "--equiprent.bootstrap.enabled=false",
                         "--spring.jpa.hibernate.ddl-auto=validate")) {
             assertThat(restarted.getBean(EntityManagerFactory.class).isOpen()).isTrue();
             var restartedFlyway = restarted.getBean(Flyway.class);

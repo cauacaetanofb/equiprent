@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Página não encontrada')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5">
+    <h1 class="h2">Página não encontrada</h1>
+    <p>O endereço ou registro solicitado não está disponível.</p>
+    <a th:href="@{/}" class="btn btn-primary">Página inicial</a>
+</main>
+</body>
+</html>

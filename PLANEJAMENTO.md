@@ -4,7 +4,7 @@
 
 Organizar a locação de equipamentos de uma pequena empresa, substituindo controles dispersos por um catálogo de unidades físicas, reservas por período e histórico de retirada e devolução. O projeto deve demonstrar fundamentos de desenvolvimento web, integridade de dados, autorização e testes em entrevistas de estágio e nível júnior.
 
-**Entrega atual:** base executável, página inicial, entidades JPA, repositories e primeira migração, com testes em PostgreSQL. As etapas 0 e 1 estão implementadas; a execução em JDK 21 permanece uma verificação de ambiente pendente. Autenticação, telas de cadastro e operações de reserva ainda não estão implementadas. As regras operacionais abaixo orientam as próximas etapas.
+**Entrega atual:** etapas 0, 1 e 2 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE e cadastro/listagem/desativação de clientes, com testes em PostgreSQL. A execução em JDK 21 permanece uma verificação de ambiente pendente. O catálogo de equipamentos e as operações de reserva ainda não estão implementados. As regras operacionais abaixo orientam as próximas etapas.
 
 ### Primeira versão
 
@@ -29,9 +29,9 @@ com.equiprent
   EquipRentApplication
   home/
     HomeController                         # existe
-  user/                                    # entidades e repository implementados
+  user/                                    # implementado na etapa 2
     User, UserRole, UserRepository
-    UserService, UserController, UserForm
+    UserService, UserController, UserForm, UserSummary
   equipment/                               # entidades e repository implementados
     Equipment, EquipmentCondition, EquipmentCategory
     EquipmentRepository, EquipmentService, EquipmentController
@@ -41,21 +41,24 @@ com.equiprent
     ReservationRepository, ReservationEventRepository
     ReservationService, AvailabilityService, ReservationController
     ReservationForm, ReservationSummary
-  security/                                # futuro
-    SecurityConfig, CustomUserDetailsService
+  security/                                # implementado na etapa 2
+    SecurityConfig, CustomUserDetailsService, CurrentUser
+    ActiveUserFilter, AdminBootstrap, AccountController
+    ApplicationSecurityConfiguration, NavigationAdvice
   shared/                                  # somente quando necessário
     configuração de Clock e tratamento de erros comuns
 
-resources/templates/{home,user,equipment,reservation}/
+resources/templates/{home,user,security,fragments,error}/  # implementadas
+resources/templates/{equipment,reservation}/              # futuras
 resources/static/{css,vendor}/
 resources/db/migration/V1__create_initial_schema.sql  # implementada
 ```
 
-Os services, controllers, formulários e objetos de saída listados nessa árvore (exceto `HomeController`) continuam planejados. Não foram criadas classes vazias para eles.
+Services, controllers e formulários de equipamentos e reservas continuam planejados. Não foram criadas classes vazias para eles. O Clock da zona de negócio já está disponível na configuração e é usado nos cadastros.
 
 O controller recebe formulários, valida entradas e escolhe a view. O service aplica regras, autorização por proprietário e transações. O repository consulta e persiste. Entidades representam o estado persistente; formulários não recebem campos como papel, proprietário ou preço histórico do navegador. Objetos de saída são introduzidos quando necessários para montar views sem consultas fora do service.
 
-Flyway controla o esquema e Hibernate apenas o valida (`ddl-auto=validate`). `open-in-view=false` torna explícito o carregamento dos dados antes da renderização. Não expor entidades diretamente como contratos de entrada. Usar `jakarta.validation` nos formulários quando a dependência for adicionada.
+Flyway controla o esquema e Hibernate apenas o valida (`ddl-auto=validate`). `open-in-view=false` torna explícito o carregamento dos dados antes da renderização. Não expor entidades diretamente como contratos de entrada. O cadastro de clientes já usa `jakarta.validation` no formulário e no service.
 
 **Por que isso é explicável em uma entrevista:** a arquitetura acompanha a complexidade de uma empresa pequena; mantém regras testáveis em services, usa transações reais para concorrência e renderiza HTML no servidor sem duplicar a aplicação em duas tecnologias.
 
@@ -133,7 +136,7 @@ Restrições de banco: fim >= início, diária e total positivos, valores de enu
 | --- | --- |
 | Nome de usuário/equipamento | 120 caracteres; obrigatório e não vazio |
 | E-mail | 254 caracteres; normalizado com `strip()` e `toLowerCase(Locale.ROOT)`; banco exige forma normalizada e unicidade |
-| Hash da senha | 255 caracteres; recebe hash pronto, sem implementar codificação/login nesta etapa |
+| Hash da senha | 255 caracteres; entidade recebe hash pronto; codificação PBKDF2 e login implementados na etapa 2 |
 | Código patrimonial | 50 caracteres; sem espaços nas extremidades, único e sensível a maiúsculas/minúsculas |
 | Descrição de equipamento | 2.000 caracteres; obrigatória e não vazia |
 | Nota do evento | 1.000 caracteres; opcional |
@@ -172,13 +175,13 @@ Mudança para manutenção não é permitida durante uso; o administrador regist
 Uma consulta prévia na interface não garante que o item continuará disponível. A operação de criação deverá:
 
 1. Abrir uma transação `@Transactional` em isolamento `READ_COMMITTED`.
-2. Buscar a linha de `Equipment` por ID com `PESSIMISTIC_WRITE` (`SELECT ... FOR UPDATE`). Bloquear o equipamento funciona mesmo quando ainda não existe nenhuma reserva.
-3. Depois de adquirir o bloqueio, revalidar condição, usuário ativo, período, atraso pendente e sobreposição em uma nova consulta.
+2. Bloquear primeiro a linha do cliente e revalidar que está ativo; depois buscar `Equipment` por ID com `PESSIMISTIC_WRITE` (`SELECT ... FOR UPDATE`). A desativação já bloqueia o cliente: compartilhar esse bloqueio impedirá que uma reserva nasça durante a desativação. Bloquear o equipamento funciona mesmo quando ainda não existe nenhuma reserva.
+3. Depois de adquirir os bloqueios, revalidar condição, período, atraso pendente e sobreposição em uma nova consulta.
 4. Ler a diária protegida, inserir reserva e evento de criação na mesma transação e confirmar.
 
 A segunda solicitação para a mesma unidade espera; após a primeira confirmar, enxerga a reserva e recebe uma mensagem de indisponibilidade. Equipamentos diferentes não se bloqueiam mutuamente. Não usar `synchronized`, pois só protegeria uma instância Java. Bloquear apenas reservas existentes também não resolve o caso de conjunto vazio.
 
-Todos os caminhos que alteram disponibilidade, condição ou preço devem adquirir o bloqueio do equipamento primeiro; depois, quando necessário, bloquear/recarregar a reserva. Cancelamento, retirada e devolução seguem a mesma ordem. Timeout/deadlock devem resultar em mensagem para tentar novamente, sem sucesso parcial. A tela HTML deve reapresentar o formulário com erro; se houver endpoint JSON no futuro, conflito pode usar HTTP 409.
+Quando uma operação precisar bloquear cliente e equipamento, a ordem será cliente → equipamento → reserva. Desativação bloqueia somente cliente. Alterações de condição/preço e operações que não precisem bloquear cliente começam pelo equipamento e depois bloqueiam/recarregam a reserva, sem adquirir bloqueio de cliente posteriormente. Timeout/deadlock devem resultar em mensagem para tentar novamente, sem sucesso parcial. A tela HTML deve reapresentar o formulário com erro; se houver endpoint JSON no futuro, conflito pode usar HTTP 409.
 
 O protocolo depende de todas as escritas de negócio passarem pelos services; scripts externos não podem criar reservas diretamente. Uma restrição de exclusão PostgreSQL é uma defesa adicional possível, mas não será adicionada sem necessidade na primeira versão. A decisão inicial privilegia bloqueio explícito, fácil de explicar e testar, com documentação desse limite.
 
@@ -260,18 +263,24 @@ Cada etapa termina com código, testes e README atualizados. Os critérios abaix
 
 ### Etapa 2 — Autenticação, perfis e clientes (depende da 1)
 
-- [ ] Adicionar Spring Security, seu suporte de teste e Bean Validation.
-- [ ] Implementar login/logout com sessão, CSRF e mensagens em português.
-- [ ] Criar primeiro ADMIN por configuração local sem segredo versionado.
-- [ ] Criar formulário de cadastro de cliente pelo ADMIN, validação e hash de senha.
-- [ ] Proteger rotas por papel e criar testes da matriz de acesso.
-- [ ] Implementar desativação com validação de pendências.
+- [x] Adicionar Spring Security, seu suporte de teste e Bean Validation.
+- [x] Implementar login/logout com sessão, CSRF e mensagens em português.
+- [x] Criar primeiro ADMIN por configuração local sem segredo versionado.
+- [x] Criar formulário de cadastro de cliente pelo ADMIN, validação e hash de senha.
+- [x] Proteger rotas por papel e criar testes da matriz de acesso.
+- [x] Implementar desativação com validação de pendências.
 
 **Conclusão:** login válido funciona; senha incorreta falha; banco só guarda hash; CLIENTE não administra e conta inativa não opera. A criação de administrador não depende de senha padrão pública.
 
 **Testes:** anônimo redirecionado ao login, ADMIN autorizado, CLIENTE recebe 403 nas ações administrativas, CSRF ausente rejeitado, e-mail duplicado rejeitado e papel enviado pelo navegador ignorado/rejeitado. Testar senha e usuário inativo.
 
 **Aprendizado:** diferença entre autenticação, papel e propriedade dos dados; proteção de formulários e armazenamento de senhas.
+
+**Decisões implementadas:** login por e-mail normalizado e sessão; CSRF habilitado; logout/desativação por POST. `CurrentUser` revalida papel e atividade no banco dentro dos services. `ActiveUserFilter` invalida a sessão de conta desativada na próxima requisição. Os formulários só recebem nome, e-mail e senha; clientes são sempre criados com papel CLIENTE. Listagem de 20 clientes por página, com `UserSummary` sem hash.
+
+Senhas de 12 a 64 caracteres usam PBKDF2 com salt aleatório e prefixo versionado `{pbkdf2@SpringSecurity_v5_8}`. Não há senha padrão, cadastro público, recuperação/troca de senha ou reativação nesta entrega. O bootstrap opcional recebe `BOOTSTRAP_ADMIN_*`, cria apenas o primeiro administrador e não promove clientes nem troca senhas existentes. Sua transação usa bloqueio de tabela para serializar inicializações simultâneas; desativação usa bloqueio de linha e impede clientes com reservas pendentes.
+
+**Resultado em 27/10/2026:** `verify` aprovado com 109 testes (2 unitário/MVC, 75 de persistência e 32 de segurança), sem falhas/erros/ignorados. A V1 não foi alterada; não há nova migração nesta etapa. O banco de desenvolvimento não foi usado nos testes. Ver instruções de bootstrap e roteiro manual no README.
 
 ### Etapa 3 — Catálogo e condição física (depende da 2)
 
@@ -289,7 +298,7 @@ Cada etapa termina com código, testes e README atualizados. Os critérios abaix
 
 ### Etapa 4 — Disponibilidade, estimativa e criação (depende da 3)
 
-- [ ] Adicionar `Clock` com zona de negócio e cálculo de diárias inclusivas.
+- [ ] Usar o `Clock` já disponível e implementar o cálculo de diárias inclusivas.
 - [ ] Criar busca de equipamentos disponíveis por período.
 - [ ] Implementar estimativa no servidor e snapshot de diária na reserva.
 - [ ] Implementar transação com bloqueio pessimista do equipamento.
@@ -313,7 +322,7 @@ Cada etapa termina com código, testes e README atualizados. Os critérios abaix
 | Falha ao inserir evento | Reserva também revertida |
 | Dois clientes concorrentes sobre o mesmo equipamento | Uma confirmação e um conflito |
 
-O teste concorrente usa duas threads e duas transações reais, conexões distintas e PostgreSQL Testcontainers. Preparar os dados com commit antes das threads, coordenar o início com barreira/latch e limitar esperas com timeout. Não usar um único teste `@Transactional` que esconda commits; não validar concorrência com mocks. Conferir reservas **e** eventos após ambas as operações. Testar também reservas não conflitantes simultâneas e criação concorrente com entrada em manutenção.
+O teste concorrente usa duas threads e duas transações reais, conexões distintas e PostgreSQL Testcontainers. Preparar os dados com commit antes das threads, coordenar o início com barreira/latch e limitar esperas com timeout. Não usar um único teste `@Transactional` que esconda commits; não validar concorrência com mocks. Conferir reservas **e** eventos após ambas as operações. Testar também reservas não conflitantes simultâneas, criação concorrente com entrada em manutenção e criação concorrente com desativação do cliente.
 
 **Aprendizado:** condições de corrida, isolamento, bloqueios, atomicidade e cálculos determinísticos.
 
@@ -382,8 +391,6 @@ As seguintes propostas permitem avançar sem bloquear a base, mas devem ser revi
 | Decisão | Premissa inicial | Momento da revisão |
 | --- | --- | --- |
 | Limite de período | Até 365 diárias; dias inclusivos | Etapa 4 |
-| Cadastro de clientes | Somente ADMIN; sem cadastro público | Etapa 2 |
-| Primeiro administrador | Bootstrap local configurado por ambiente, sem senha fixa | Etapa 2 |
 | Manutenção com reservas futuras | Manter reservas, impedir retirada e sinalizar ao ADMIN | Etapas 3 e 6 |
 | Devolução antecipada | Libera uso após conferência, sem recálculo do contrato | Etapa 6 |
 | Atraso em uso | Bloquear novas reservas de qualquer período até regularização | Etapas 4 e 6 |

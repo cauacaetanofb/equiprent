@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Entrar')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5">
+    <section class="card auth-card mx-auto p-4 p-md-5" aria-labelledby="titulo">
+        <p class="eyebrow text-secondary">BEM-VINDO AO EQUIPRENT</p>
+        <h1 id="titulo" class="h2 mb-3">Acesse sua conta</h1>
+        <p class="text-secondary">Entre com o e-mail e a senha cadastrados.</p>
+        <div th:if="${param.error}" class="alert alert-danger" role="alert">Não foi possível entrar. Verifique suas credenciais e se sua conta está ativa.</div>
+        <div th:if="${param.inactive}" class="alert alert-warning" role="alert">Sua sessão foi encerrada porque a conta não está ativa. Entre em contato com o administrador.</div>
+        <div th:if="${param.logout}" class="alert alert-success" role="status">Você saiu da sua conta.</div>
+        <form th:action="@{/login}" method="post">
+            <div class="mb-3">
+                <label for="email" class="form-label">E-mail</label>
+                <input id="email" name="email" type="email" class="form-control" maxlength="254" autocomplete="username" required autofocus>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label">Senha</label>
+                <input id="password" name="password" type="password" class="form-control" maxlength="64" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Entrar</button>
+        </form>
+        <p class="small text-secondary mt-4 mb-0">Ainda não tem acesso? Solicite seu cadastro ao administrador.</p>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

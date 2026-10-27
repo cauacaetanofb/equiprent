@@ -9,13 +9,7 @@
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
-<a class="visually-hidden-focusable p-3" href="#conteudo">Ir para o conteúdo</a>
-<header class="border-bottom bg-white">
-    <div class="container py-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <a class="brand text-decoration-none" th:href="@{/}" aria-label="EquipRent — página inicial">Equip<span>Rent</span></a>
-        <span class="badge rounded-pill text-bg-light border px-3 py-2">Projeto em desenvolvimento</span>
-    </div>
-</header>
+<header th:replace="~{fragments/layout :: header}"></header>
 <main id="conteudo" class="container py-5">
     <section class="hero p-4 p-md-5 mb-5" aria-labelledby="titulo">
         <p class="eyebrow mb-3">ALUGUEL DE EQUIPAMENTOS</p>
@@ -31,7 +25,7 @@
             </div>
             <div class="col-lg-7">
                 <p class="text-secondary">O EquipRent está sendo construído para ajudar pequenas empresas a organizar seus equipamentos e acompanhar cada aluguel.</p>
-                <p class="mb-0"><strong>Etapa atual:</strong> estrutura inicial e página de apresentação. As funcionalidades abaixo estão planejadas e ainda não estão disponíveis.</p>
+                <p class="mb-0"><strong>Etapa atual:</strong> acesso ao sistema e cadastro de clientes pelo administrador. As funcionalidades abaixo estão planejadas e ainda não estão disponíveis.</p>
             </div>
         </div>
         <div class="row g-4">

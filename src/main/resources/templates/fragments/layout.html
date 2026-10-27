@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' | EquipRent'">EquipRent</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header th:fragment="header" class="border-bottom bg-white">
+    <a class="visually-hidden-focusable p-3" href="#conteudo">Ir para o conteúdo</a>
+    <nav class="container py-4 d-flex flex-wrap align-items-center justify-content-between gap-3" aria-label="Navegação principal">
+        <a class="brand text-decoration-none" th:href="@{/}" aria-label="EquipRent — página inicial">Equip<span>Rent</span></a>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <a th:if="${isAdmin}" th:href="@{/admin/clientes}" class="nav-link">Clientes</a>
+            <a th:if="${signedIn}" th:href="@{/conta}" class="nav-link">Minha conta</a>
+            <a th:unless="${signedIn}" th:href="@{/login}" class="btn btn-primary">Entrar</a>
+            <form th:if="${signedIn}" th:action="@{/logout}" method="post">
+                <button type="submit" class="btn btn-outline-secondary">Sair</button>
+            </form>
+        </div>
+    </nav>
+</header>
+<footer th:fragment="footer" class="container py-4 mt-5 border-top text-secondary small">
+    EquipRent · Projeto de portfólio · Desenvolvido por etapas
+</footer>
+</body>
+</html>

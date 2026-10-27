@@ -13,3 +13,7 @@ body { background: #f7f8f5; color: var(--equiprent-ink); }
 .card { border: 1px solid #dee5df; border-radius: 1rem; }
 .step { color: var(--equiprent-accent); font-size: .85rem; font-weight: 700; }
 :focus-visible { outline: 3px solid #a36b00; outline-offset: 4px; }
+.auth-card { max-width: 30rem; }
+.form-card { max-width: 42rem; }
+.btn-primary { --bs-btn-bg: #236852; --bs-btn-border-color: #236852; --bs-btn-hover-bg: #18342e; --bs-btn-hover-border-color: #18342e; --bs-btn-active-bg: #18342e; --bs-btn-active-border-color: #18342e; }
+.table th, .table td { padding: 1rem; }
