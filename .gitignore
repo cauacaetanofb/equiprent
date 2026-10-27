@@ -1,0 +1,15 @@
+target/
+.env
+.env.*
+!.env.example
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+*.log
+.DS_Store
+Thumbs.db
+.local/
+AGENTS.md

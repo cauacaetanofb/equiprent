@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="EquipRent: organização de aluguel de equipamentos para pequenas empresas.">
+    <title>EquipRent | Aluguel de equipamentos</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<a class="visually-hidden-focusable p-3" href="#conteudo">Ir para o conteúdo</a>
+<header class="border-bottom bg-white">
+    <div class="container py-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <a class="brand text-decoration-none" th:href="@{/}" aria-label="EquipRent — página inicial">Equip<span>Rent</span></a>
+        <span class="badge rounded-pill text-bg-light border px-3 py-2">Projeto em desenvolvimento</span>
+    </div>
+</header>
+<main id="conteudo" class="container py-5">
+    <section class="hero p-4 p-md-5 mb-5" aria-labelledby="titulo">
+        <p class="eyebrow mb-3">ALUGUEL DE EQUIPAMENTOS</p>
+        <h1 id="titulo" class="display-5 fw-semibold mb-4">Cada equipamento.<br>Cada reserva. Tudo organizado.</h1>
+        <p class="lead mb-4">Uma forma simples de acompanhar o aluguel de notebooks, câmeras e ferramentas, da reserva à devolução.</p>
+        <a class="btn btn-light px-4 py-2 fw-semibold" href="#sobre">Conheça o projeto</a>
+    </section>
+    <section id="sobre" aria-labelledby="sobre-titulo">
+        <div class="row g-4 align-items-start mb-4">
+            <div class="col-lg-5">
+                <p class="eyebrow text-secondary">O PROJETO</p>
+                <h2 id="sobre-titulo" class="h3">Mais clareza na rotina de locação</h2>
+            </div>
+            <div class="col-lg-7">
+                <p class="text-secondary">O EquipRent está sendo construído para ajudar pequenas empresas a organizar seus equipamentos e acompanhar cada aluguel.</p>
+                <p class="mb-0"><strong>Etapa atual:</strong> estrutura inicial e página de apresentação. As funcionalidades abaixo estão planejadas e ainda não estão disponíveis.</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <article class="card h-100 p-4">
+                    <span class="step mb-4" aria-hidden="true">01</span>
+                    <h3 class="h5">Equipamentos</h3>
+                    <p class="text-secondary mb-0">Catálogo por unidade física, com categoria, diária e condição de uso.</p>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="card h-100 p-4">
+                    <span class="step mb-4" aria-hidden="true">02</span>
+                    <h3 class="h5">Reservas</h3>
+                    <p class="text-secondary mb-0">Consulta por período, estimativa de valor e controle de disponibilidade.</p>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="card h-100 p-4">
+                    <span class="step mb-4" aria-hidden="true">03</span>
+                    <h3 class="h5">Retiradas e devoluções</h3>
+                    <p class="text-secondary mb-0">Acompanhamento das movimentações, do histórico e dos atrasos.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+</main>
+<footer class="container py-4 border-top text-secondary small">
+    EquipRent · Projeto de portfólio · Desenvolvido por etapas
+</footer>
+</body>
+</html>
