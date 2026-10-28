@@ -8,6 +8,14 @@
     <h1 class="h2 mt-4" th:text="|Reserva #${reservation.id}|"></h1>
     <p class="lead" th:text="|${reservation.equipmentName} · ${reservation.assetCode}|"></p>
     <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
+    <div th:if="${operationError}" class="alert alert-danger" role="alert" th:text="${operationError}"></div>
+    <div th:if="${reservation.overdue}" class="alert alert-warning" role="status">Devolução atrasada. Novas reservas desta unidade ficam bloqueadas até a devolução.</div>
+    <div th:if="${reservation.returnedLate}" class="alert alert-secondary">Devolvida com atraso. O valor contratado foi preservado.</div>
+    <div th:object="${returnForm}">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
+            <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
+        </div>
+    </div>
     <div th:object="${cancellationForm}">
         <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
             <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
@@ -23,7 +31,30 @@
             <dt class="col-sm-4">Diária contratada</dt><dd class="col-sm-8" th:text="|R$ ${#numbers.formatDecimal(reservation.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></dd>
             <dt class="col-sm-4">Total estimado</dt><dd class="col-sm-8" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></dd>
             <dt class="col-sm-4">Registrada em</dt><dd class="col-sm-8" th:text="|${#temporals.format(details.createdAt, 'dd/MM/yyyy HH:mm')} (São Paulo)|"></dd>
+            <dt th:if="${details.pickedUpAt != null}" class="col-sm-4">Retirada em</dt><dd th:if="${details.pickedUpAt != null}" class="col-sm-8" th:text="|${#temporals.format(details.pickedUpAt, 'dd/MM/yyyy HH:mm')} (São Paulo)|"></dd>
+            <dt th:if="${details.returnedAt != null}" class="col-sm-4">Devolvida em</dt><dd th:if="${details.returnedAt != null}" class="col-sm-8" th:text="|${#temporals.format(details.returnedAt, 'dd/MM/yyyy HH:mm')} (São Paulo)|"></dd>
         </dl>
+        <a th:if="${administrative}" th:href="@{/equipamentos/{id}(id=${reservation.equipmentId})}" class="mt-3">Consultar equipamento e reservas afetadas</a>
+    </section>
+    <section th:if="${administrative and reservation.status.name() == 'RESERVED'}" class="card p-4 mb-4" aria-labelledby="retirada-titulo">
+        <h2 id="retirada-titulo" class="h5">Registrar retirada</h2>
+        <p class="text-secondary">Confirme a entrega física ao cliente. A retirada exige equipamento operacional, nenhum outro uso aberto e data dentro do período contratado.</p>
+        <p>Condição atual: <strong th:text="${details.equipmentCondition.label}"></strong></p>
+        <form th:action="@{/admin/reservas/{id}/retirar(id=${reservation.id})}" method="post">
+            <button type="submit" class="btn btn-primary">Confirmar retirada</button>
+        </form>
+    </section>
+    <section th:if="${administrative and reservation.status.name() == 'IN_USE'}" class="card p-4 mb-4" aria-labelledby="devolucao-titulo">
+        <h2 id="devolucao-titulo" class="h5">Registrar devolução</h2>
+        <p class="text-secondary">Confirme o recebimento e a conferência da unidade. O valor contratado permanece igual, mesmo em devolução antecipada ou atrasada.</p>
+        <form th:action="@{/admin/reservas/{id}/devolver(id=${reservation.id})}" th:object="${returnForm}" method="post">
+            <div class="form-check mb-3">
+                <input th:field="*{maintenance}" type="checkbox" class="form-check-input" aria-describedby="maintenance-help">
+                <label for="maintenance" class="form-check-label">Encaminhar equipamento para manutenção</label>
+            </div>
+            <p id="maintenance-help" class="small text-secondary">Se desmarcado, o equipamento ficará operacional. Reservas futuras serão preservadas; manutenção impede novas reservas e retiradas.</p>
+            <button type="submit" class="btn btn-primary">Confirmar devolução</button>
+        </form>
     </section>
     <section th:if="${details.cancelledAt != null}" class="card p-4 mb-4" aria-labelledby="cancelamento-titulo">
         <h2 id="cancelamento-titulo" class="h5">Registro do cancelamento</h2>
@@ -32,7 +63,7 @@
         <p class="text-break" style="white-space: pre-wrap" th:text="${details.cancellationReason != null ? details.cancellationReason : 'Motivo não informado.'}"></p>
         <p class="small text-secondary mb-0">Os dados e valores contratados foram preservados para consulta.</p>
     </section>
-    <section th:if="${reservation.status.name() == 'RESERVED'}" class="card p-4" aria-labelledby="cancelar-titulo">
+    <section th:if="${reservation.status.name() == 'RESERVED'}" class="card p-4 mb-4" aria-labelledby="cancelar-titulo">
         <h2 id="cancelar-titulo" class="h5">Cancelar esta reserva</h2>
         <p class="text-secondary">O cancelamento é definitivo e libera este período. Para alugar novamente, será necessário criar outra reserva.</p>
         <form th:action="@{${basePath + '/' + reservation.id + '/cancelar'}}" th:object="${cancellationForm}" method="post">
@@ -40,6 +71,16 @@
             <textarea th:field="*{reason}" class="form-control mb-3" rows="3" maxlength="1000" th:required="${administrative}"></textarea>
             <button type="submit" class="btn btn-outline-danger">Confirmar cancelamento</button>
         </form>
+    </section>
+    <section class="card p-4" aria-labelledby="historico-titulo">
+        <h2 id="historico-titulo" class="h5">Linha do tempo</h2>
+        <ol class="list-group list-group-flush">
+            <li th:each="event : ${details.timeline}" class="list-group-item px-0">
+                <p class="mb-1"><strong th:text="${event.previousStatus == null ? 'Reserva criada' : event.previousStatus.label + ' → ' + event.newStatus.label}"></strong></p>
+                <p class="small text-secondary mb-1"><span th:text="|${#temporals.format(event.occurredAt, 'dd/MM/yyyy HH:mm:ss')} (São Paulo)|"></span> · <span th:text="${event.actorName}"></span></p>
+                <p th:if="${event.note != null}" class="text-break mb-1" style="white-space: pre-wrap" th:text="${event.note}"></p>
+            </li>
+        </ol>
     </section>
 </main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>

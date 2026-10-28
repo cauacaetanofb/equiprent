@@ -26,7 +26,7 @@ class HomeControllerTest {
                 .andExpect(view().name("home/index"))
                 .andExpect(content().string(containsString("lang=\"pt-BR\"")))
                 .andExpect(content().string(containsString("EquipRent")))
-                .andExpect(content().string(containsString("ainda não estão disponíveis")))
+                .andExpect(content().string(containsString("retirada e devolução")))
                 .andExpect(content().string(containsString("href=\"/css/app.css\"")));
     }
 }

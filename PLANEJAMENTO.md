@@ -4,7 +4,7 @@
 
 Organizar a locação de equipamentos de uma pequena empresa, substituindo controles dispersos por um catálogo de unidades físicas, reservas por período e histórico de retirada e devolução. O projeto deve demonstrar fundamentos de desenvolvimento web, integridade de dados, autorização e testes em entrevistas de estágio e nível júnior.
 
-**Entrega atual:** etapas 0 a 5 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE, cadastro/listagem/desativação de clientes, catálogo e condições de equipamentos, disponibilidade, estimativa, criação transacional de reservas, listagens por perfil, detalhes e cancelamento com evento. Há testes em PostgreSQL, inclusive concorrentes. Execução efetiva em JDK 21 permanece pendente. A próxima etapa é retirada, devolução, atrasos e linha do tempo completa.
+**Entrega atual:** etapas 0 a 6 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE, clientes, catálogo, disponibilidade, estimativa, criação/cancelamento de reservas, listagens por perfil, retirada/devolução, manutenção ao devolver, atrasos e linha do tempo. Há testes em PostgreSQL, inclusive concorrentes. Execução efetiva em JDK 21 permanece pendente. A próxima etapa é acabamento, revisão visual do fluxo completo e CI.
 
 ### Primeira versão
 
@@ -36,13 +36,14 @@ com.equiprent
     Equipment, EquipmentCondition, EquipmentCategory
     EquipmentRepository, EquipmentService, EquipmentController
     EquipmentForm, EquipmentSummary
-  reservation/                             # criação na etapa 4; consulta/cancelamento na etapa 5
+  reservation/                             # fluxo de reservas implementado nas etapas 4 a 6
     Reservation, ReservationStatus, ReservationEvent
     ReservationRepository, ReservationEventRepository
     ReservationService, ReservationController, RentalPeriod, AvailabilityRules
     ReservationForm, ReservationEstimate, ReservationConfirmation
     ReservationManagementService, ReservationManagementController
     ReservationFilter, ReservationSummary, ReservationDetails, CancellationForm
+    ReservationOperationsService, ReturnForm, ReservationTimelineEntry
   security/                                # implementado na etapa 2
     SecurityConfig, CustomUserDetailsService, CurrentUser
     ActiveUserFilter, AdminBootstrap, AccountController
@@ -362,17 +363,23 @@ Cancelamento aceita somente motivo (até 1.000 caracteres), obrigatório para AD
 
 ### Etapa 6 — Retirada, devolução e atrasos (depende da 5)
 
-- [ ] Implementar transições apenas por ADMIN e validar estado atual sob bloqueio.
-- [ ] Registrar instantes e eventos de retirada/devolução.
-- [ ] Permitir condição de manutenção ao devolver, na mesma transação.
-- [ ] Exibir atrasos atuais, devoluções tardias e reservas futuras afetadas.
-- [ ] Exibir linha do tempo completa, integrada aos filtros de status/cliente/equipamento/período já implementados na etapa 5.
+- [x] Implementar transições apenas por ADMIN e validar estado atual sob bloqueio.
+- [x] Registrar instantes e eventos de retirada/devolução.
+- [x] Permitir condição de manutenção ao devolver, na mesma transação.
+- [x] Exibir atrasos atuais, devoluções tardias e reservas futuras afetadas.
+- [x] Exibir linha do tempo completa, integrada aos filtros de status/cliente/equipamento/período já implementados na etapa 5.
 
 **Conclusão:** somente a máquina de estados definida é aceita. Nunca existem duas retiradas abertas para a mesma unidade. Atrasos usam a zona de negócio e continuam identificáveis após a devolução. Não há multa nem alteração automática do preço histórico.
 
 **Testes:** cada transição válida e inválida; CLIENTE não retira/devolve; retirada antecipada ou após prazo rejeitada; cancelamento contra retirada concorrente; retirada/devolução duplicada; manutenção bloqueia retirada; falha de evento reverte status; limites de meia-noite com Clock fixo; devolução antecipada, pontual e tardia.
 
 **Aprendizado:** máquinas de estados, consistência transacional, tempo de negócio e auditoria.
+
+**Decisões implementadas:** POST `/admin/reservas/{id}/retirar` e `/devolver`, com CSRF e papel/atividade revalidados no service. Retirada apenas de `RESERVED`, dentro do período inclusivo, com unidade operacional e sem outro `IN_USE`. Devolução apenas de `IN_USE`; formulário aceita somente opção de manutenção. Bloqueio equipamento → reserva, recarga após espera, evento/instantes/condição física atômicos. Repetições e transições inválidas não criam eventos. Preço histórico não muda em devolução antecipada ou tardia.
+
+Atraso atual calculado por data civil de São Paulo; devolução tardia usa a data local do instante registrado, preservando a indicação histórica. Listas ganham filtro de atrasos em aberto sem perder escopo do cliente ou paginação. Detalhes mostram linha do tempo com autores carregados junto dos eventos e desempate por ID. Evento de devolução guarda a decisão operacional/manutenção. Equipamentos em manutenção ou com `IN_USE` atrasado exibem ao ADMIN as reservas `RESERVED` com fim a partir de hoje, paginadas; compromissos permanecem até cancelamento manual. V1 intacta.
+
+**Resultado em 27/10/2026:** `clean verify` aprovado com 267 testes (14 unitário/MVC e 253 de integração), sem falhas/erros/ignorados. Os 41 novos testes cobrem o fluxo completo, limites de meia-noite/UTC, autorização, atrasos, manutenção, reservas afetadas, rollback e concorrência entre as operações. Detalhes com três eventos validados em até cinco comandos SQL. PostgreSQL 17 descartável; banco de desenvolvimento preservado. Execução em JDK 25 com `release 21`; JDK 21 efetivo e revisão visual manual seguem pendentes para a etapa 7.
 
 ### Etapa 7 — Acabamento e fluxo completo (depende da 6)
 
@@ -410,9 +417,6 @@ As seguintes propostas permitem avançar sem bloquear a base, mas devem ser revi
 
 | Decisão | Premissa inicial | Momento da revisão |
 | --- | --- | --- |
-| Manutenção com reservas futuras | Reservas preservadas e sinalizadas ao ADMIN na etapa 3; integrar retirada | Etapa 6 |
-| Devolução antecipada | Libera uso após conferência, sem recálculo do contrato | Etapa 6 |
-| Atraso em uso | Bloqueio de novas reservas implementado na etapa 4; integrar devolução e visualização | Etapa 6 |
 | Horário comercial e tolerância | Sem janela de horas; prazo por dia civil | Antes de uso real |
 
 Não introduzir pagamento, multas, mensagens assíncronas ou múltiplas empresas para resolver essas pendências. Registrar qualquer mudança de regra junto dos exemplos e testes correspondentes.

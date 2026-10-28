@@ -79,10 +79,11 @@ public class EquipmentService {
     public Page<AffectedReservation> getAffectedReservations(Long id, int page) {
         currentUser.requireAdmin();
         var item = equipment.findById(id).orElseThrow(EquipmentNotFoundException::new);
-        if (item.getCondition() != EquipmentCondition.MAINTENANCE) {
+        if (item.getCondition() != EquipmentCondition.MAINTENANCE && !reservations.existsByEquipmentIdAndStatusAndEndDateBefore(
+                id, ReservationStatus.IN_USE, rentalPeriod.today())) {
             return Page.empty();
         }
-        return reservations.findAllByEquipmentIdAndStatusIn(id, List.of(ReservationStatus.RESERVED),
+        return reservations.findAllByEquipmentIdAndStatusAndEndDateGreaterThanEqual(id, ReservationStatus.RESERVED, rentalPeriod.today(),
                         PageRequest.of(Math.max(0, Math.min(Integer.MAX_VALUE / 10, page)), 10, Sort.by("startDate", "id")))
                 .map(reservation -> new AffectedReservation(reservation.getId(),
                         reservation.getStartDate(), reservation.getEndDate()));

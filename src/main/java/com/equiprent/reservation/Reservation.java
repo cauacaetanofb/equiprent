@@ -93,6 +93,22 @@ public class Reservation {
         this.status = ReservationStatus.CANCELLED;
     }
 
+    public void pickUp(Instant pickedUpAt) {
+        if (status != ReservationStatus.RESERVED) {
+            throw new ReservationRuleException("Somente reservas no estado Reservada permitem retirada.");
+        }
+        this.pickedUpAt = Objects.requireNonNull(pickedUpAt);
+        this.status = ReservationStatus.IN_USE;
+    }
+
+    public void returnEquipment(Instant returnedAt) {
+        if (status != ReservationStatus.IN_USE) {
+            throw new ReservationRuleException("Somente reservas no estado Em uso permitem devolução.");
+        }
+        this.returnedAt = Objects.requireNonNull(returnedAt);
+        this.status = ReservationStatus.RETURNED;
+    }
+
     public User getCustomer() {
         return customer;
     }

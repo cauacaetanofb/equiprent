@@ -4,9 +4,9 @@ Sistema web de aluguel de equipamentos para pequenas empresas, desenvolvido como
 
 ## Situação atual
 
-**Implementado:** base Spring Boot, apresentação em português com Thymeleaf e Bootstrap local, PostgreSQL por ambiente, Compose, Maven Wrapper, modelo JPA e migração V1; login/logout por sessão, perfis ADMIN/CLIENTE, primeiro administrador por bootstrap opcional, página de conta e cadastro/listagem paginada/desativação de clientes pelo ADMIN. Catálogo com cadastro/edição administrativa, consulta pelo cliente, busca, filtros, paginação e controle de manutenção/aposentadoria. Disponibilidade por período, estimativa e criação de reservas pelo CLIENTE, confirmação privada, preço histórico e evento gravados atomicamente, com bloqueios contra conflitos concorrentes. Minhas reservas e visão administrativa, detalhes, filtros e cancelamento com autor, horário e motivo. Há testes MVC, unitários e de integração com PostgreSQL.
+**Implementado:** base Spring Boot, apresentação em português com Thymeleaf e Bootstrap local, PostgreSQL por ambiente, Compose, Maven Wrapper, modelo JPA e migração V1; login/logout por sessão, perfis ADMIN/CLIENTE, primeiro administrador por bootstrap opcional, página de conta e cadastro/listagem paginada/desativação de clientes pelo ADMIN. Catálogo com cadastro/edição administrativa, consulta pelo cliente, busca, filtros, paginação e controle de manutenção/aposentadoria. Disponibilidade, estimativa, criação e cancelamento de reservas, com valores históricos e eventos atômicos. Minhas reservas e visão administrativa, retirada/devolução, manutenção ao devolver, atrasos atuais e históricos, reservas afetadas e linha do tempo. Há testes MVC, unitários e de integração com PostgreSQL, incluindo concorrência.
 
-**Planejado:** retirada, devolução, visualização de atrasos e linha do tempo completa das movimentações. Recuperação/troca de senha, reativação e cadastro público não fazem parte desta entrega. Consulte [PLANEJAMENTO.md](PLANEJAMENTO.md) para as regras e etapas.
+**Próximas etapas:** revisão visual e de acessibilidade, fluxo completo no navegador, CI com JDK 21 e preparação da demonstração de portfólio. Recuperação/troca de senha, reativação, cadastro público, pagamentos e multas não fazem parte desta entrega. Consulte [PLANEJAMENTO.md](PLANEJAMENTO.md) para as regras e etapas.
 
 ## Tecnologias e decisões
 
@@ -140,6 +140,8 @@ As quatro variáveis são opcionais: arquivos `.env` das etapas anteriores conti
 | `/admin/reservas` e `/admin/reservas/{id}` | Vai para login | 403 | Todas as reservas |
 | `POST /reservas/{id}/cancelar` | Não | Somente a própria, com CSRF | 403; usar área administrativa |
 | `POST /admin/reservas/{id}/cancelar` | Não | 403 | Sim, com motivo e CSRF |
+| `POST /admin/reservas/{id}/retirar` | Não | 403 | Sim, dentro do período e com CSRF |
+| `POST /admin/reservas/{id}/devolver` | Não | 403 | Sim, para reserva em uso e com CSRF |
 | Sair da conta | — | POST com CSRF | POST com CSRF |
 
 O cadastro sempre cria `CLIENTE` ativo, mesmo que alguém tente enviar campos como `role=ADMIN`, `id` ou `active`. A listagem tem 20 registros por página e não envia hashes às views. Desativar exige ausência de reservas `RESERVED`/`IN_USE`; reservas finalizadas e eventos são preservados. O fluxo não desativa administradores.
@@ -152,9 +154,9 @@ Abra **Minha conta → Equipamentos** ou **http://localhost:8080/equipamentos**.
 
 A busca por trecho de nome/código ignora maiúsculas/minúsculas, trata `%` e `_` como caracteres literais e combina categoria e condição. A listagem começa com 20 itens por página, permite entre 1 e 100, preserva filtros nos links e aceita somente nome, menor/maior diária ou data de cadastro como ordenação. O ID desempata resultados iguais.
 
-Condição física não é disponibilidade por período. Todas as unidades nascem operacionais. O ADMIN pode colocá-las em manutenção e retornar à operação; manutenção é recusada enquanto houver reserva `IN_USE`. Reservas `RESERVED` são preservadas e aparecem em uma lista de pendências de 10 itens por página, visível apenas ao ADMIN. A aposentadoria exige ausência de reservas `RESERVED`/`IN_USE`, é definitiva e oculta a unidade do catálogo do CLIENTE, inclusive no acesso direto por ID. ADMIN continua consultando e editando seus dados; reservas e eventos não são apagados.
+Condição física não é disponibilidade por período. Todas as unidades nascem operacionais. O ADMIN pode colocá-las em manutenção e retornar à operação; manutenção direta é recusada enquanto houver reserva `IN_USE`, mas pode ser registrada junto da devolução. Reservas `RESERVED` são preservadas. Quando houver manutenção ou devolução atrasada, as reservas com término a partir de hoje aparecem em uma lista de pendências de 10 itens por página, visível apenas ao ADMIN. A aposentadoria exige ausência de reservas `RESERVED`/`IN_USE`, é definitiva e oculta a unidade do catálogo do CLIENTE, inclusive no acesso direto por ID. ADMIN continua consultando e editando seus dados; reservas e eventos não são apagados.
 
-Edição de dados/preço, alteração de condição, criação e cancelamento de reserva compartilham `PESSIMISTIC_WRITE` no equipamento dentro da transação. Uma falha transitória no catálogo apresenta uma página com orientação para tentar novamente; na criação/cancelamento de reserva, o formulário reaparece preservando entradas e exibindo mensagem de nova tentativa. As etapas 3 a 5 não alteram a migração V1.
+Edição de dados/preço, alteração de condição e todas as operações de reserva compartilham `PESSIMISTIC_WRITE` no equipamento dentro da transação. Uma falha transitória no catálogo apresenta uma página com orientação para tentar novamente; nas operações da reserva, a tela reaparece preservando entradas e exibindo mensagem de nova tentativa. As etapas 3 a 6 não alteram a migração V1.
 
 Roteiro manual, depois de iniciar com `Start-Local.ps1`:
 
@@ -186,7 +188,7 @@ Roteiro manual da etapa 4:
 4. Como outro CLIENTE, tente consultar o mesmo período para a mesma unidade: ela não aparece na disponibilidade. A URL de confirmação do primeiro cliente retorna 404.
 5. Busque um período começando no dia seguinte ao término: a unidade volta a aparecer. Se mudar a diária como ADMIN, a confirmação já gravada mantém o valor histórico.
 
-As reservas podem ser acompanhadas e canceladas conforme as regras abaixo. Retirada e devolução serão adicionadas na etapa 6. Não é necessário apagar o volume do banco ou recriar o administrador.
+As reservas podem ser acompanhadas e canceladas conforme as regras abaixo; ADMIN também registra retirada e devolução. Não é necessário apagar o volume do banco ou recriar o administrador.
 
 ### Minhas reservas, administração e cancelamento
 
@@ -207,6 +209,28 @@ Roteiro manual da etapa 5:
 3. Como outro CLIENTE, tente abrir a URL de detalhes anterior: deve receber 404 e não ver a reserva na própria lista.
 4. Como ADMIN, abra **Reservas**, busque um cliente e cancele outra reserva de teste informando o motivo. O cliente titular consegue consultar esse motivo nos detalhes.
 5. Atualize os detalhes após cancelar: o formulário de cancelamento desaparece. Histórico de equipamentos aposentados e clientes desativados continua acessível ao ADMIN.
+
+### Retirada, devolução, atrasos e linha do tempo
+
+ADMIN abre `/admin/reservas/{id}` e usa **Confirmar retirada** depois de entregar fisicamente o equipamento. A reserva precisa estar `RESERVED`, o dia atual deve estar entre início e fim (inclusive), a unidade deve estar operacional e não pode existir outra reserva em uso para ela. Retirada antecipada ou após o período é recusada. Uma reserva vencida sem retirada continua `RESERVED`, podendo ser cancelada; não é tratada como devolução atrasada.
+
+Depois da retirada, **Confirmar devolução** registra o recebimento e a conferência. Com **Encaminhar equipamento para manutenção** marcado, a unidade passa a `MAINTENANCE`; desmarcado, fica `OPERATIONAL`. A devolução exige `IN_USE` e aceita recebimento antecipado, no prazo ou atrasado. O total contratado não muda e não há multa automática. Uma devolução antecipada libera a unidade para nova reserva, inclusive no mesmo dia, respeitadas as demais regras de disponibilidade.
+
+Retirada e devolução são exclusivas de ADMIN e só ocorrem por POST com CSRF. A transação bloqueia equipamento → reserva, recarrega os registros e verifica o estado atual. Estado, instante, condição física na devolução e evento são gravados juntos; falha de evento reverte tudo. Duas retiradas da mesma unidade não podem ficar abertas. Repetir uma operação concluída informa estado inválido sem duplicar evento. Os instantes e o autor vêm do servidor; o formulário de devolução aceita apenas a opção de manutenção.
+
+As listas e os detalhes mostram **Devolução atrasada** quando `IN_USE` e hoje é posterior ao fim, usando `America/Sao_Paulo`. O filtro **Somente devoluções atrasadas em aberto** combina com os filtros existentes e respeita a propriedade. Após devolver, a indicação **Devolvida com atraso** compara a data local da devolução ao fim contratado e permanece histórica. Não existe status `OVERDUE` nem tarefa agendada para mudar estados.
+
+ADMIN pode usar **Consultar equipamento e reservas afetadas** nos detalhes para ver compromissos atuais/futuros prejudicados por manutenção ou devolução atrasada. Eles são preservados, sem cancelamento automático. A lista é restrita ao ADMIN; reservas expiradas sem retirada continuam disponíveis na listagem geral para regularização.
+
+A **Linha do tempo** mostra criação, cancelamento ou retirada/devolução, com autor, estados, instante em São Paulo e observação, ordenados por instante e ID. O evento de devolução registra se houve encaminhamento para manutenção, mesmo se a condição do catálogo mudar depois. CLIENTE vê somente a linha do tempo de suas próprias reservas. Os autores são carregados junto dos eventos, sem consulta adicional por evento.
+
+Roteiro manual da etapa 6:
+
+1. Como CLIENTE, reserve um equipamento operacional com **início hoje** e término hoje ou depois. Isso permite testar a retirada imediatamente.
+2. Como ADMIN, abra **Reservas → número da reserva → Confirmar retirada**. Confira **Em uso**, horário e evento na linha do tempo. A opção de cancelamento desaparece.
+3. Confirme a devolução após conferir a unidade. Confira **Devolvida**, o novo evento e os mesmos valores contratados.
+4. Em outra reserva de teste, faça retirada e devolução marcando manutenção. Confira o equipamento em **Em manutenção** e a observação no histórico.
+5. Como CLIENTE, confira sua linha do tempo e a ausência dos controles de retirada/devolução. Os cenários de atraso e meia-noite são cobertos pelos testes com relógio controlado; não é necessário mudar o relógio do computador.
 
 ### Senhas e formulários
 
@@ -243,7 +267,7 @@ Com PostgreSQL já instalado, use um banco vazio dedicado e as credenciais corre
 
 Com Docker Desktop em execução, esse comando compila para Java 21, executa os testes unitário/MVC (Surefire), gera `target/equiprent-0.0.1-SNAPSHOT.jar` e executa os testes de integração `*IT` (Failsafe). Não é necessário carregar `.env` nem iniciar o banco do Compose para testar.
 
-O Testcontainers cria PostgreSQL 17 em porta aleatória e o remove ao terminar. `PersistenceIT`, `SecurityIT`, `EquipmentIT`, `ReservationIT` e `ReservationManagementIT` substituem explicitamente URL, usuário e senha do datasource pelas credenciais de seus contêineres. Os testes de segurança usam contas fictícias e bootstrap configurado no próprio teste; os demais desabilitam o bootstrap. A migração e os testes nunca usam o volume ou as credenciais do seu banco de desenvolvimento. O primeiro teste pode demorar mais para baixar a imagem. Docker indisponível faz a suite completa **falhar**, em vez de ignorar os testes silenciosamente.
+O Testcontainers cria PostgreSQL 17 em porta aleatória e o remove ao terminar. `PersistenceIT`, `SecurityIT`, `EquipmentIT`, `ReservationIT`, `ReservationManagementIT` e `ReservationOperationsIT` substituem explicitamente URL, usuário e senha do datasource pelas credenciais de seus contêineres. Os testes de segurança usam contas fictícias e bootstrap configurado no próprio teste; os demais desabilitam o bootstrap. A migração e os testes nunca usam o volume ou as credenciais do seu banco de desenvolvimento. O primeiro teste pode demorar mais para baixar a imagem. Docker indisponível faz a suite completa **falhar**, em vez de ignorar os testes silenciosamente.
 
 Para executar somente os testes rápidos, sem Docker:
 
@@ -258,6 +282,7 @@ Para reproduzir somente a integração de reservas, incluindo os testes concorre
 ```powershell
 .\mvnw.cmd '-Dit.test=ReservationIT' verify
 .\mvnw.cmd '-Dit.test=ReservationManagementIT' verify
+.\mvnw.cmd '-Dit.test=ReservationOperationsIT' verify
 ```
 
 As threads e transações são reais. Testes coordenam tentativas simultâneas e, nos casos de espera, consultam o bloqueio no PostgreSQL. Um teste aplica `lock_timeout` de dois segundos somente nas conexões do seu contêiner descartável e confere o formulário de nova tentativa sem gravações parciais. Isso não muda as configurações do banco local.
@@ -301,6 +326,7 @@ src/main/java/com/equiprent/
   reservation/{Reservation,ReservationStatus,ReservationEvent,ReservationRepository,ReservationEventRepository}.java
   reservation/{ReservationService,ReservationController,ReservationForm,RentalPeriod,AvailabilityRules,...}.java
   reservation/{ReservationManagementService,ReservationManagementController,ReservationFilter,CancellationForm,...}.java
+  reservation/{ReservationOperationsService,ReturnForm,ReservationTimelineEntry}.java
 src/main/resources/
   application.yaml
   db/migration/README.md
@@ -317,7 +343,7 @@ src/main/resources/
 src/test/java/com/equiprent/home/HomeControllerTest.java
 src/test/java/com/equiprent/equipment/EquipmentTest.java
 src/test/java/com/equiprent/equipment/EquipmentIT.java
-src/test/java/com/equiprent/reservation/{RentalPeriodTest,ReservationIT,ReservationManagementIT}.java
+src/test/java/com/equiprent/reservation/{RentalPeriodTest,ReservationIT,ReservationManagementIT,ReservationOperationsIT}.java
 src/test/java/com/equiprent/persistence/PersistenceIT.java
 src/test/java/com/equiprent/security/SecurityIT.java
 PLANEJAMENTO.md
@@ -327,7 +353,7 @@ O Flyway é a única fonte de mudanças no esquema. `ddl-auto: validate` impede 
 
 Os relacionamentos são `ManyToOne` com carregamento `LAZY` e sem cascata de exclusão. O banco impede excluir usuários, equipamentos e reservas referenciados pelo histórico. Enums são textos com `CHECK`; valores monetários usam `BigDecimal` e `numeric`, com snapshot da diária na reserva. Eventos são imutáveis pelo mapeamento JPA. Limites de campos e responsabilidades do banco versus services estão no planejamento.
 
-Autorização existe nos filtros e nos services. Criação/cancelamento de reservas compartilham bloqueios com as demais operações. Consultas de CLIENTE sempre aplicam propriedade; ADMIN tem área específica para todas as reservas. Os repositories não são expostos como endpoints HTTP. As etapas 2 a 5 reutilizam a V1 existente, sem alterar seu checksum nem exigir outra migração.
+Autorização existe nos filtros e nos services. As operações de reserva compartilham os bloqueios de negócio. Consultas de CLIENTE sempre aplicam propriedade; ADMIN tem área específica para todas as reservas. Os repositories não são expostos como endpoints HTTP. As etapas 2 a 6 reutilizam a V1 existente, sem alterar seu checksum nem exigir outra migração.
 
 ## Validação da etapa 2 — 27/10/2026
 
@@ -368,6 +394,15 @@ Não houve instalação global de ferramentas nem publicação do projeto.
 - Listagem de 20 reservas com equipamentos distintos usa no máximo três comandos SQL (usuário, página com relações e contagem). Templates reais e navegação nas páginas de erro passaram na suite completa.
 - V1 intacta, sem dependências novas ou uso do banco de desenvolvimento. Execução em JDK 25 com `release 21`; JDK 21 efetivo e revisão visual manual continuam pendentes.
 
+## Validação da etapa 6 — 27/10/2026
+
+- `.\mvnw.cmd -B -ntp clean verify`: **BUILD SUCCESS**, **267 testes** (14 unitário/MVC e 253 de integração), sem falhas, erros ou ignorados; JAR executável gerado.
+- Os 41 testes de `ReservationOperationsIT` cobrem transições válidas/inválidas, período inclusivo, equipamento inapto, outro uso aberto, autorização/CSRF, entradas adulteradas, devolução antecipada/pontual/tardia e valores históricos preservados.
+- Relógio controlado verifica 23:59:59/00:00 de São Paulo para retirada, atraso e devolução histórica, inclusive quando UTC já chegou ao dia seguinte. Filtro de atrasos respeita propriedade, contagem e paginação; reservas afetadas são visíveis apenas ao ADMIN.
+- Concorrência real: retirada contra cancelamento, retiradas/devoluções duplicadas, dois usos da mesma unidade, devolução contra outra retirada e devolução com manutenção contra nova reserva. Falha de evento reverte estado, instantes e condição física. Timeout reapresenta a tela e preserva a opção de manutenção, sem gravações parciais.
+- Linha do tempo validada com autor, ordem por instante/ID, observação de manutenção e privacidade. Consulta de detalhes com três eventos usa até cinco comandos SQL, sem uma consulta por autor.
+- V1 preservada, sem dependências novas e sem usar o banco de desenvolvimento. JDK 25 com `release 21`; execução efetiva em JDK 21 e revisão visual no navegador permanecem pendentes para a etapa 7.
+
 ## Próximo passo
 
-Executar a etapa 6 do [planejamento](PLANEJAMENTO.md): retirada e devolução pelo ADMIN, manutenção ao devolver, atrasos e linha do tempo completa. Reutilizar os bloqueios e a máquina de estados, registrando cada transição e evento atomicamente.
+Executar a etapa 7 do [planejamento](PLANEJAMENTO.md): revisar interface, acessibilidade e responsividade, conferir o fluxo completo no navegador com perfis separados e configurar CI executando toda a suite em JDK 21.

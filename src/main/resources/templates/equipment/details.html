@@ -46,9 +46,9 @@
             <div class="col-sm-auto"><button type="submit" class="btn btn-primary">Confirmar alteração</button></div>
         </form>
     </section>
-    <section th:if="${isAdmin and affectedReservations != null and !affectedReservations.empty}" class="card p-4 mt-4" aria-labelledby="afetadas-titulo">
-        <h2 id="afetadas-titulo" class="h5">Reservas pendentes afetadas pela manutenção</h2>
-        <p class="text-secondary">Estas reservas foram preservadas. Regularize a manutenção ou as reservas antes de realizar a retirada.</p>
+    <section th:if="${isAdmin and affectedReservations != null and affectedReservations.totalElements > 0}" class="card p-4 mt-4" aria-labelledby="afetadas-titulo">
+        <h2 id="afetadas-titulo" class="h5">Reservas pendentes afetadas por manutenção ou atraso</h2>
+        <p class="text-secondary">Estas reservas com término a partir de hoje foram preservadas. Regularize a manutenção ou a devolução atrasada antes de realizar a retirada, ou cancele a reserva com motivo.</p>
         <div class="table-responsive">
             <table class="table">
                 <thead><tr><th scope="col">Reserva</th><th scope="col">Início</th><th scope="col">Fim</th></tr></thead>
@@ -60,6 +60,7 @@
             </table>
         </div>
         <nav class="d-flex gap-2" aria-label="Paginação das reservas afetadas">
+            <a th:if="${affectedReservations.number > 0}" th:href="@{/equipamentos/{id}(id=${equipment.id},affectedPage=0)}">Primeira página</a>
             <a th:if="${affectedReservations.hasPrevious()}" th:href="@{/equipamentos/{id}(id=${equipment.id},affectedPage=${affectedReservations.number - 1})}">Anterior</a>
             <a th:if="${affectedReservations.hasNext()}" th:href="@{/equipamentos/{id}(id=${equipment.id},affectedPage=${affectedReservations.number + 1})}">Próxima</a>
         </nav>

@@ -18,6 +18,10 @@ public class ReservationFilter {
     private int page;
     private int size = 20;
     private String sort = "newest";
+    private boolean overdueOnly;
+
+    public boolean isOverdueOnly() { return overdueOnly; }
+    public void setOverdueOnly(boolean overdueOnly) { this.overdueOnly = overdueOnly; }
 
     public String getQ() { return q; }
     public void setQ(String q) { this.q = q == null ? "" : q.strip(); }

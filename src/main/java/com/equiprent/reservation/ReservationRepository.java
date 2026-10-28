@@ -36,6 +36,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
 
     boolean existsByEquipmentIdAndStatusIn(Long equipmentId, Collection<ReservationStatus> statuses);
 
-    Page<Reservation> findAllByEquipmentIdAndStatusIn(Long equipmentId,
-            Collection<ReservationStatus> statuses, Pageable pageable);
+    boolean existsByEquipmentIdAndStatusAndEndDateBefore(Long equipmentId, ReservationStatus status, LocalDate today);
+
+    Page<Reservation> findAllByEquipmentIdAndStatusAndEndDateGreaterThanEqual(
+            Long equipmentId, ReservationStatus status, LocalDate today, Pageable pageable);
+
 }

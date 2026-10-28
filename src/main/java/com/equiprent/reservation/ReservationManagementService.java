@@ -68,6 +68,10 @@ public class ReservationManagementService {
                         builder.like(builder.lower(root.get("customer").get("email")), like(filter.getCustomer()), '!')));
             }
             if (filter.getStatus() != null) predicates.add(builder.equal(root.get("status"), filter.getStatus()));
+            if (filter.isOverdueOnly()) {
+                predicates.add(builder.equal(root.get("status"), ReservationStatus.IN_USE));
+                predicates.add(builder.lessThan(root.get("endDate"), java.time.LocalDate.now(clock)));
+            }
             if (filter.getFromDate() != null) predicates.add(builder.greaterThanOrEqualTo(root.get("endDate"), filter.getFromDate()));
             if (filter.getToDate() != null) predicates.add(builder.lessThanOrEqualTo(root.get("startDate"), filter.getToDate()));
             return builder.and(predicates.toArray(Predicate[]::new));
@@ -78,7 +82,7 @@ public class ReservationManagementService {
             default -> Sort.by(Sort.Direction.DESC, "createdAt");
         };
         return reservations.findAll(criteria, PageRequest.of(filter.getPage(), filter.getSize(),
-                sort.and(Sort.by(Sort.Direction.DESC, "id")))).map(ReservationSummary::from);
+                sort.and(Sort.by(Sort.Direction.DESC, "id")))).map(value -> ReservationSummary.from(value, clock));
     }
 
     private String like(String input) {
@@ -93,10 +97,15 @@ public class ReservationManagementService {
     @Transactional(readOnly = true)
     public ReservationDetails details(Long id, boolean administrative) {
         var reservation = accessible(id, actor(administrative), administrative);
-        var event = events.findFirstByReservationIdAndNewStatusOrderByOccurredAtDescIdDesc(id, ReservationStatus.CANCELLED);
-        return new ReservationDetails(ReservationSummary.from(reservation), reservation.getCreatedAt().atZone(clock.getZone()),
+        var history = events.findAllByReservationIdOrderByOccurredAtAscIdAsc(id);
+        var event = history.stream().filter(value -> value.getNewStatus() == ReservationStatus.CANCELLED).findFirst();
+        return new ReservationDetails(ReservationSummary.from(reservation, clock), reservation.getCreatedAt().atZone(clock.getZone()),
                 reservation.getCancelledAt() == null ? null : reservation.getCancelledAt().atZone(clock.getZone()),
-                event.map(value -> value.getActor().getName()).orElse(null), event.map(ReservationEvent::getNote).orElse(null));
+                event.map(value -> value.getActor().getName()).orElse(null), event.map(ReservationEvent::getNote).orElse(null),
+                reservation.getPickedUpAt() == null ? null : reservation.getPickedUpAt().atZone(clock.getZone()),
+                reservation.getReturnedAt() == null ? null : reservation.getReturnedAt().atZone(clock.getZone()),
+                reservation.getEquipment().getCondition(),
+                history.stream().map(value -> ReservationTimelineEntry.from(value, clock.getZone())).toList());
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 10)

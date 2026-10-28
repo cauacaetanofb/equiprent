@@ -1,6 +1,7 @@
 package com.equiprent.reservation;
 
 import org.springframework.data.repository.Repository;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,8 +13,6 @@ public interface ReservationEventRepository extends Repository<ReservationEvent,
 
     Optional<ReservationEvent> findById(Long id);
 
-    Optional<ReservationEvent> findFirstByReservationIdAndNewStatusOrderByOccurredAtDescIdDesc(
-            Long reservationId, ReservationStatus newStatus);
-
+    @EntityGraph(attributePaths = "actor")
     List<ReservationEvent> findAllByReservationIdOrderByOccurredAtAscIdAsc(Long reservationId);
 }

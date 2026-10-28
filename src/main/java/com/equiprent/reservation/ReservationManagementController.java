@@ -15,12 +15,18 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class ReservationManagementController {
     private final ReservationManagementService reservations;
-    public ReservationManagementController(ReservationManagementService reservations) { this.reservations = reservations; }
+    private final ReservationOperationsService operations;
+    public ReservationManagementController(ReservationManagementService reservations, ReservationOperationsService operations) {
+        this.reservations = reservations;
+        this.operations = operations;
+    }
 
     @InitBinder("reservationFilter")
-    void filter(WebDataBinder binder) { binder.setAllowedFields("q", "customer", "status", "fromDate", "toDate", "page", "size", "sort"); }
+    void filter(WebDataBinder binder) { binder.setAllowedFields("q", "customer", "status", "fromDate", "toDate", "page", "size", "sort", "overdueOnly"); }
     @InitBinder("cancellationForm")
     void cancellation(WebDataBinder binder) { binder.setAllowedFields("reason"); }
+    @InitBinder("returnForm")
+    void returnForm(WebDataBinder binder) { binder.setAllowedFields("maintenance"); }
 
     @GetMapping("/reservas")
     public String mine(@Valid @ModelAttribute ReservationFilter reservationFilter, BindingResult binding, Model model) {
@@ -53,6 +59,7 @@ public class ReservationManagementController {
     private String details(Long id, Model model, boolean administrative) {
         model.addAttribute("details", reservations.details(id, administrative));
         if (!model.containsAttribute("cancellationForm")) model.addAttribute("cancellationForm", new CancellationForm());
+        if (!model.containsAttribute("returnForm")) model.addAttribute("returnForm", new ReturnForm());
         navigation(model, administrative);
         return "reservation/details";
     }
@@ -89,6 +96,39 @@ public class ReservationManagementController {
     private void navigation(Model model, boolean administrative) {
         model.addAttribute("administrative", administrative);
         model.addAttribute("basePath", administrative ? "/admin/reservas" : "/reservas");
+    }
+
+    @PostMapping("/admin/reservas/{id}/retirar")
+    public String pickUp(@PathVariable Long id, Model model, RedirectAttributes redirect) {
+        reservations.requireAccess(true);
+        try {
+            operations.pickUp(id);
+            redirect.addFlashAttribute("success", "Retirada registrada. O equipamento está em uso.");
+            return "redirect:/admin/reservas/" + id;
+        } catch (ReservationRuleException exception) {
+            model.addAttribute("operationError", exception.getMessage());
+        } catch (TransientDataAccessException exception) {
+            model.addAttribute("operationError", "Não foi possível registrar a retirada agora. Confira a reserva e tente novamente.");
+        }
+        return details(id, model, true);
+    }
+
+    @PostMapping("/admin/reservas/{id}/devolver")
+    public String returnEquipment(@PathVariable Long id, @Valid @ModelAttribute ReturnForm returnForm,
+            BindingResult binding, Model model, RedirectAttributes redirect) {
+        reservations.details(id, true);
+        if (!binding.hasErrors()) {
+            try {
+                operations.returnEquipment(id, returnForm);
+                redirect.addFlashAttribute("success", "Devolução registrada. Os valores contratados foram preservados.");
+                return "redirect:/admin/reservas/" + id;
+            } catch (ReservationRuleException exception) {
+                binding.reject("state", exception.getMessage());
+            } catch (TransientDataAccessException exception) {
+                binding.reject("retry", "Não foi possível registrar a devolução agora. Confira a reserva e tente novamente.");
+            }
+        }
+        return details(id, model, true);
     }
 
     @ExceptionHandler(ReservationNotFoundException.class)
