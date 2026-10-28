@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Detalhes da reserva')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5" th:with="reservation=${details.summary}">
+    <a th:href="@{${basePath}}">Voltar às reservas</a>
+    <h1 class="h2 mt-4" th:text="|Reserva #${reservation.id}|"></h1>
+    <p class="lead" th:text="|${reservation.equipmentName} · ${reservation.assetCode}|"></p>
+    <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
+    <div th:object="${cancellationForm}">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
+            <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
+        </div>
+    </div>
+    <section class="card p-4 mb-4" aria-labelledby="detalhes-titulo">
+        <h2 id="detalhes-titulo" class="h5">Dados da reserva</h2>
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Situação</dt><dd class="col-sm-8" th:text="${reservation.status.label}"></dd>
+            <dt th:if="${administrative}" class="col-sm-4">Cliente</dt><dd th:if="${administrative}" class="col-sm-8"><span th:text="${reservation.customerName}"></span><small class="d-block text-secondary text-break" th:text="${reservation.customerEmail}"></small></dd>
+            <dt class="col-sm-4">Início</dt><dd class="col-sm-8" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></dd>
+            <dt class="col-sm-4">Fim (inclusive)</dt><dd class="col-sm-8" th:text="${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}"></dd>
+            <dt class="col-sm-4">Diária contratada</dt><dd class="col-sm-8" th:text="|R$ ${#numbers.formatDecimal(reservation.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></dd>
+            <dt class="col-sm-4">Total estimado</dt><dd class="col-sm-8" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></dd>
+            <dt class="col-sm-4">Registrada em</dt><dd class="col-sm-8" th:text="|${#temporals.format(details.createdAt, 'dd/MM/yyyy HH:mm')} (São Paulo)|"></dd>
+        </dl>
+    </section>
+    <section th:if="${details.cancelledAt != null}" class="card p-4 mb-4" aria-labelledby="cancelamento-titulo">
+        <h2 id="cancelamento-titulo" class="h5">Registro do cancelamento</h2>
+        <p th:text="|${#temporals.format(details.cancelledAt, 'dd/MM/yyyy HH:mm')} (São Paulo)|"></p>
+        <p th:if="${details.cancelledBy != null}">Cancelada por <strong th:text="${details.cancelledBy}"></strong>.</p>
+        <p class="text-break" style="white-space: pre-wrap" th:text="${details.cancellationReason != null ? details.cancellationReason : 'Motivo não informado.'}"></p>
+        <p class="small text-secondary mb-0">Os dados e valores contratados foram preservados para consulta.</p>
+    </section>
+    <section th:if="${reservation.status.name() == 'RESERVED'}" class="card p-4" aria-labelledby="cancelar-titulo">
+        <h2 id="cancelar-titulo" class="h5">Cancelar esta reserva</h2>
+        <p class="text-secondary">O cancelamento é definitivo e libera este período. Para alugar novamente, será necessário criar outra reserva.</p>
+        <form th:action="@{${basePath + '/' + reservation.id + '/cancelar'}}" th:object="${cancellationForm}" method="post">
+            <label for="reason" class="form-label" th:text="${administrative ? 'Motivo (obrigatório)' : 'Motivo (opcional)'}"></label>
+            <textarea th:field="*{reason}" class="form-control mb-3" rows="3" maxlength="1000" th:required="${administrative}"></textarea>
+            <button type="submit" class="btn btn-outline-danger">Confirmar cancelamento</button>
+        </form>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

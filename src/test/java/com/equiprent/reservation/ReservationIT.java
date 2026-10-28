@@ -231,7 +231,7 @@ class ReservationIT {
                 .andExpect(status().isForbidden());
         mvc.perform(submit(form(1L, 9, 11)).with(user(ADMIN).roles("ADMIN"))).andExpect(status().isForbidden());
         mvc.perform(post("/reservas").with(user(CLIENT).roles("CLIENTE"))).andExpect(status().isForbidden());
-        mvc.perform(get("/reservas").with(user(CLIENT).roles("CLIENTE"))).andExpect(status().isMethodNotAllowed());
+        mvc.perform(get("/reservas").with(user(CLIENT).roles("CLIENTE"))).andExpect(status().isOk());
         authenticate(ADMIN);
         assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.create(form(1L, 9, 11)));
         authenticate(CLIENT);

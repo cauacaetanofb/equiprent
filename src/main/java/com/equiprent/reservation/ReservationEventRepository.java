@@ -12,5 +12,8 @@ public interface ReservationEventRepository extends Repository<ReservationEvent,
 
     Optional<ReservationEvent> findById(Long id);
 
+    Optional<ReservationEvent> findFirstByReservationIdAndNewStatusOrderByOccurredAtDescIdDesc(
+            Long reservationId, ReservationStatus newStatus);
+
     List<ReservationEvent> findAllByReservationIdOrderByOccurredAtAscIdAsc(Long reservationId);
 }

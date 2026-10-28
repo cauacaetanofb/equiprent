@@ -6,7 +6,7 @@
 <main id="conteudo" class="container py-5">
     <section class="card p-4 p-md-5 form-card mx-auto" aria-labelledby="titulo">
         <p class="eyebrow text-success">RESERVA REGISTRADA</p>
-        <h1 id="titulo" class="h2" th:text="|Reserva #${reservation.id} confirmada|"></h1>
+        <h1 id="titulo" class="h2" th:text="${reservation.status.name() == 'RESERVED' ? 'Reserva #' + reservation.id + ' confirmada' : 'Reserva #' + reservation.id + ' · ' + reservation.status.label}"></h1>
         <p class="lead" th:text="|${reservation.equipmentName} · ${reservation.assetCode}|"></p>
         <dl class="row">
             <dt class="col-sm-5">Início</dt><dd class="col-sm-7" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></dd>
@@ -15,8 +15,8 @@
             <dt class="col-sm-5">Total estimado</dt><dd class="col-sm-7" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></dd>
         </dl>
         <p class="text-secondary">O valor foi registrado com a reserva. Alterações futuras na diária do catálogo não modificam este total.</p>
-        <p class="small text-secondary">A listagem de reservas, o cancelamento, a retirada e a devolução serão disponibilizados nas próximas etapas do projeto.</p>
-        <div><a class="btn btn-primary" th:href="@{/equipamentos}">Voltar ao catálogo</a></div>
+        <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" th:href="@{/reservas/{id}(id=${reservation.id})}">Acompanhar reserva</a>
+            <a class="btn btn-outline-secondary" th:href="@{/reservas}">Minhas reservas</a></div>
     </section>
 </main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>

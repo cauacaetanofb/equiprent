@@ -53,7 +53,7 @@
             <table class="table">
                 <thead><tr><th scope="col">Reserva</th><th scope="col">Início</th><th scope="col">Fim</th></tr></thead>
                 <tbody><tr th:each="reservation : ${affectedReservations}">
-                    <td th:text="|#${reservation.id}|"></td>
+                    <td><a th:href="@{/admin/reservas/{id}(id=${reservation.id})}" th:text="|#${reservation.id}|"></a></td>
                     <td th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></td>
                     <td th:text="${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}"></td>
                 </tr></tbody>

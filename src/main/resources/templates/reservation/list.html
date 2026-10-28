@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${administrative ? 'Todas as reservas' : 'Minhas reservas'})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <h1 class="h2 mb-0" th:text="${administrative ? 'Todas as reservas' : 'Minhas reservas'}"></h1>
+        <a th:unless="${administrative}" th:href="@{/equipamentos}" class="btn btn-primary">Encontrar equipamento</a>
+    </div>
+    <form th:action="@{${basePath}}" th:object="${reservationFilter}" method="get" class="card p-4 mb-4" aria-label="Filtros de reservas">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
+            <p>Revise os filtros informados:</p><ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="q" class="form-label">Equipamento (nome ou código)</label>
+                <input th:field="*{q}" type="search" maxlength="120" class="form-control">
+            </div>
+            <div th:if="${administrative}" class="col-md-6">
+                <label for="customer" class="form-label">Cliente (nome ou e-mail)</label>
+                <input th:field="*{customer}" type="search" maxlength="254" class="form-control">
+            </div>
+            <div class="col-md-6">
+                <label for="status" class="form-label">Situação</label>
+                <select th:field="*{status}" class="form-select"><option value="">Todas</option>
+                    <option th:each="status : ${statuses}" th:value="${status}" th:text="${status.label}"></option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label for="fromDate" class="form-label">Período a partir de</label>
+                <input th:field="*{fromDate}" type="date" min="0001-01-01" max="9999-12-31" class="form-control" aria-describedby="period-help">
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label for="toDate" class="form-label">Até (inclusive)</label>
+                <input th:field="*{toDate}" type="date" min="0001-01-01" max="9999-12-31" class="form-control" aria-describedby="period-help">
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label for="sort" class="form-label">Ordenar por</label>
+                <select th:field="*{sort}" class="form-select"><option value="newest">Cadastro mais recente</option>
+                    <option value="startAsc">Início crescente</option><option value="startDesc">Início decrescente</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label for="size" class="form-label">Itens por página</label>
+                <input th:field="*{size}" type="number" min="1" max="100" required class="form-control">
+            </div>
+        </div>
+        <p id="period-help" class="small text-secondary mt-3">Mostra reservas que incluem algum dia do período informado. As datas podem ser passadas; cada limite é opcional.</p>
+        <div class="d-flex gap-2"><button type="submit" class="btn btn-primary">Buscar</button><a th:href="@{${basePath}}" class="btn btn-outline-secondary">Limpar filtros</a></div>
+    </form>
+    <div th:if="${reservationPage.empty}" class="card p-4">
+        <h2 class="h5">Nenhuma reserva encontrada</h2>
+        <p class="text-secondary">Confira os filtros ou volte à primeira página.</p>
+        <a th:href="@{${basePath}(q=${reservationFilter.q},customer=${reservationFilter.customer},status=${reservationFilter.status},fromDate=${reservationFilter.fromDate},toDate=${reservationFilter.toDate},size=${reservationFilter.size},sort=${reservationFilter.sort})}">Primeira página</a>
+    </div>
+    <div th:unless="${reservationPage.empty}" class="card overflow-hidden">
+        <div class="table-responsive"><table class="table align-middle mb-0">
+            <caption class="visually-hidden">Reservas encontradas</caption>
+            <thead><tr><th scope="col">Reserva</th><th scope="col">Equipamento</th><th th:if="${administrative}" scope="col">Cliente</th><th scope="col">Período</th><th scope="col">Situação</th><th scope="col">Total estimado</th></tr></thead>
+            <tbody><tr th:each="reservation : ${reservationPage}">
+                <td><a th:href="@{${basePath + '/' + reservation.id}}" th:text="|#${reservation.id}|"></a></td>
+                <td><span th:text="${reservation.equipmentName}"></span><small class="d-block text-secondary" th:text="${reservation.assetCode}"></small></td>
+                <td th:if="${administrative}"><span th:text="${reservation.customerName}"></span><small class="d-block text-secondary text-break" th:text="${reservation.customerEmail}"></small></td>
+                <td><span class="text-nowrap" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></span><span class="d-block text-nowrap" th:text="|até ${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}|"></span></td>
+                <td th:text="${reservation.status.label}"></td>
+                <td class="text-nowrap" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></td>
+            </tr></tbody>
+        </table></div>
+    </div>
+    <nav class="d-flex flex-wrap justify-content-between gap-3 mt-4" aria-label="Paginação de reservas">
+        <p class="small text-secondary" th:text="|${reservationPage.totalElements} reserva(s) encontrada(s)|"></p>
+        <div class="d-flex gap-2">
+            <a th:if="${reservationPage.hasPrevious()}" th:href="@{${basePath}(q=${reservationFilter.q},customer=${reservationFilter.customer},status=${reservationFilter.status},fromDate=${reservationFilter.fromDate},toDate=${reservationFilter.toDate},size=${reservationFilter.size},sort=${reservationFilter.sort},page=${reservationPage.number - 1})}" class="btn btn-outline-secondary">Anterior</a>
+            <a th:if="${reservationPage.hasNext()}" th:href="@{${basePath}(q=${reservationFilter.q},customer=${reservationFilter.customer},status=${reservationFilter.status},fromDate=${reservationFilter.fromDate},toDate=${reservationFilter.toDate},size=${reservationFilter.size},sort=${reservationFilter.sort},page=${reservationPage.number + 1})}" class="btn btn-outline-secondary">Próxima</a>
+        </div>
+    </nav>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

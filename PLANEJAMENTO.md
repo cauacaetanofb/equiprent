@@ -4,7 +4,7 @@
 
 Organizar a locação de equipamentos de uma pequena empresa, substituindo controles dispersos por um catálogo de unidades físicas, reservas por período e histórico de retirada e devolução. O projeto deve demonstrar fundamentos de desenvolvimento web, integridade de dados, autorização e testes em entrevistas de estágio e nível júnior.
 
-**Entrega atual:** etapas 0 a 4 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE, cadastro/listagem/desativação de clientes, catálogo e condições de equipamentos, disponibilidade por período, estimativa e criação transacional de reservas com evento e confirmação privada. Há testes em PostgreSQL, inclusive concorrentes. Execução efetiva em JDK 21 permanece pendente. Listagem/cancelamento de reservas, retirada e devolução são as próximas etapas.
+**Entrega atual:** etapas 0 a 5 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE, cadastro/listagem/desativação de clientes, catálogo e condições de equipamentos, disponibilidade, estimativa, criação transacional de reservas, listagens por perfil, detalhes e cancelamento com evento. Há testes em PostgreSQL, inclusive concorrentes. Execução efetiva em JDK 21 permanece pendente. A próxima etapa é retirada, devolução, atrasos e linha do tempo completa.
 
 ### Primeira versão
 
@@ -36,11 +36,13 @@ com.equiprent
     Equipment, EquipmentCondition, EquipmentCategory
     EquipmentRepository, EquipmentService, EquipmentController
     EquipmentForm, EquipmentSummary
-  reservation/                             # disponibilidade e criação implementadas na etapa 4
+  reservation/                             # criação na etapa 4; consulta/cancelamento na etapa 5
     Reservation, ReservationStatus, ReservationEvent
     ReservationRepository, ReservationEventRepository
     ReservationService, ReservationController, RentalPeriod, AvailabilityRules
     ReservationForm, ReservationEstimate, ReservationConfirmation
+    ReservationManagementService, ReservationManagementController
+    ReservationFilter, ReservationSummary, ReservationDetails, CancellationForm
   security/                                # implementado na etapa 2
     SecurityConfig, CustomUserDetailsService, CurrentUser
     ActiveUserFilter, AdminBootstrap, AccountController
@@ -340,11 +342,11 @@ Valores da estimativa podem mudar antes da confirmação; a interface informa a 
 
 ### Etapa 5 — Minhas reservas e cancelamento (depende da 4)
 
-- [ ] Criar listagem e detalhes do cliente com busca/filtros e paginação.
-- [ ] Criar visão administrativa de todas as reservas.
-- [ ] Implementar cancelamento por POST, motivo administrativo e evento.
-- [ ] Impedir alteração de proprietário, período e snapshot após criação.
-- [ ] Testar tentativa de acesso por IDs de outro cliente.
+- [x] Criar listagem e detalhes do cliente com busca/filtros e paginação.
+- [x] Criar visão administrativa de todas as reservas.
+- [x] Implementar cancelamento por POST, motivo administrativo e evento.
+- [x] Impedir alteração de proprietário, período e snapshot após criação.
+- [x] Testar tentativa de acesso por IDs de outro cliente.
 
 **Conclusão:** cliente A não lê nem cancela reservas de B, mesmo alterando a URL ou o corpo. Cancelamento libera o período e preserva os dados e eventos.
 
@@ -352,13 +354,19 @@ Valores da estimativa podem mudar antes da confirmação; a interface informa a 
 
 **Aprendizado:** autorização por registro, prevenção de acesso indevido por ID e histórico.
 
+**Decisões implementadas:** rotas CLIENTE em `/reservas` e ADMIN em `/admin/reservas`. Busca por equipamento, status e período para ambos; busca por nome/e-mail do cliente somente na área administrativa. Datas opcionais e independentes filtram sobreposição inclusiva, inclusive histórica. Paginação padrão 20, máximo 100 e ID decrescente como desempate. Consulta com relações carregadas evita N+1; DTOs não incluem hashes.
+
+Cancelamento aceita somente motivo (até 1.000 caracteres), obrigatório para ADMIN e opcional para CLIENTE. Services revalidam papel/atividade e propriedade. Equipamento é bloqueado antes da reserva, cujo estado é recarregado após a espera; cancelamento/evento são atômicos. Somente `RESERVED` pode ser cancelada, mesmo após o período previsto se não houve retirada. Repetição não cria evento. Detalhes mostram autor, motivo e horário em São Paulo; a confirmação antiga passa a refletir o estado atual. Histórico continua acessível ao ADMIN para clientes inativos/equipamentos aposentados. Nenhuma alteração na V1.
+
+**Resultado em 27/10/2026:** `clean verify` aprovado com 226 testes (14 unitário/MVC e 212 de integração), sem falhas/erros/ignorados. Os 36 novos testes cobrem autorização, filtros, preservação de valores, motivos, cancelamentos concorrentes, corrida com nova reserva, rollback de evento e timeout. Lista de 20 reservas com equipamentos distintos validada com até três comandos SQL. PostgreSQL 17 descartável, sem usar banco de desenvolvimento. JDK 25 com `release 21`; JDK 21 efetivo e revisão visual manual ainda pendentes.
+
 ### Etapa 6 — Retirada, devolução e atrasos (depende da 5)
 
 - [ ] Implementar transições apenas por ADMIN e validar estado atual sob bloqueio.
 - [ ] Registrar instantes e eventos de retirada/devolução.
 - [ ] Permitir condição de manutenção ao devolver, na mesma transação.
 - [ ] Exibir atrasos atuais, devoluções tardias e reservas futuras afetadas.
-- [ ] Exibir linha do tempo e filtros por status, cliente, equipamento e período.
+- [ ] Exibir linha do tempo completa, integrada aos filtros de status/cliente/equipamento/período já implementados na etapa 5.
 
 **Conclusão:** somente a máquina de estados definida é aceita. Nunca existem duas retiradas abertas para a mesma unidade. Atrasos usam a zona de negócio e continuam identificáveis após a devolução. Não há multa nem alteração automática do preço histórico.
 

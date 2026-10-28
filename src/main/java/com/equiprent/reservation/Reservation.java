@@ -84,6 +84,15 @@ public class Reservation {
         return id;
     }
 
+    // Chamado pelo service somente depois de bloquear equipamento e reserva.
+    public void cancel(Instant cancelledAt) {
+        if (status != ReservationStatus.RESERVED) {
+            throw new ReservationRuleException("Somente reservas no estado Reservada podem ser canceladas.");
+        }
+        this.cancelledAt = Objects.requireNonNull(cancelledAt);
+        this.status = ReservationStatus.CANCELLED;
+    }
+
     public User getCustomer() {
         return customer;
     }
