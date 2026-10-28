@@ -3,21 +3,21 @@
 <head th:replace="~{fragments/layout :: head('Detalhes da reserva')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
-<main id="conteudo" class="container py-5" th:with="reservation=${details.summary}">
+<main id="conteudo" tabindex="-1" class="container py-5" th:with="reservation=${details.summary}">
     <a th:href="@{${basePath}}">Voltar às reservas</a>
     <h1 class="h2 mt-4" th:text="|Reserva #${reservation.id}|"></h1>
     <p class="lead" th:text="|${reservation.equipmentName} · ${reservation.assetCode}|"></p>
     <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
-    <div th:if="${operationError}" class="alert alert-danger" role="alert" th:text="${operationError}"></div>
+    <div th:if="${operationError}" class="alert alert-danger" role="alert" tabindex="-1" autofocus th:text="${operationError}"></div>
     <div th:if="${reservation.overdue}" class="alert alert-warning" role="status">Devolução atrasada. Novas reservas desta unidade ficam bloqueadas até a devolução.</div>
     <div th:if="${reservation.returnedLate}" class="alert alert-secondary">Devolvida com atraso. O valor contratado foi preservado.</div>
     <div th:object="${returnForm}">
-        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert" tabindex="-1" autofocus>
             <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
         </div>
     </div>
     <div th:object="${cancellationForm}">
-        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert" tabindex="-1" autofocus>
             <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
         </div>
     </div>
@@ -50,7 +50,7 @@
         <form th:action="@{/admin/reservas/{id}/devolver(id=${reservation.id})}" th:object="${returnForm}" method="post">
             <div class="form-check mb-3">
                 <input th:field="*{maintenance}" type="checkbox" class="form-check-input" aria-describedby="maintenance-help">
-                <label for="maintenance" class="form-check-label">Encaminhar equipamento para manutenção</label>
+                <label th:for="${#ids.prev('maintenance')}" class="form-check-label">Encaminhar equipamento para manutenção</label>
             </div>
             <p id="maintenance-help" class="small text-secondary">Se desmarcado, o equipamento ficará operacional. Reservas futuras serão preservadas; manutenção impede novas reservas e retiradas.</p>
             <button type="submit" class="btn btn-primary">Confirmar devolução</button>
@@ -65,12 +65,16 @@
     </section>
     <section th:if="${reservation.status.name() == 'RESERVED'}" class="card p-4 mb-4" aria-labelledby="cancelar-titulo">
         <h2 id="cancelar-titulo" class="h5">Cancelar esta reserva</h2>
-        <p class="text-secondary">O cancelamento é definitivo e libera este período. Para alugar novamente, será necessário criar outra reserva.</p>
+        <details th:open="${#fields.hasErrors('cancellationForm.*')}">
+        <summary class="text-danger">Revisar cancelamento</summary>
+        <p class="text-secondary mt-3">O cancelamento é definitivo e libera este período. Para alugar novamente, será necessário criar outra reserva.</p>
         <form th:action="@{${basePath + '/' + reservation.id + '/cancelar'}}" th:object="${cancellationForm}" method="post">
             <label for="reason" class="form-label" th:text="${administrative ? 'Motivo (obrigatório)' : 'Motivo (opcional)'}"></label>
-            <textarea th:field="*{reason}" class="form-control mb-3" rows="3" maxlength="1000" th:required="${administrative}"></textarea>
+            <textarea th:field="*{reason}" class="form-control mb-3" rows="3" maxlength="1000" th:required="${administrative}" th:attr="aria-invalid=${#fields.hasErrors('reason')}" aria-describedby="reason-error"></textarea>
+            <p id="reason-error" class="text-danger small" th:errors="*{reason}"></p>
             <button type="submit" class="btn btn-outline-danger">Confirmar cancelamento</button>
         </form>
+        </details>
     </section>
     <section class="card p-4" aria-labelledby="historico-titulo">
         <h2 id="historico-titulo" class="h5">Linha do tempo</h2>

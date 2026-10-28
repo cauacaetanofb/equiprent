@@ -1,6 +1,11 @@
 :root {
     --equiprent-ink: #18342e;
     --equiprent-accent: #236852;
+    --bs-secondary-rgb: 86, 98, 94;
+    --bs-link-color: #1c5945;
+    --bs-link-color-rgb: 28, 89, 69;
+    --bs-link-hover-color: #18342e;
+    --bs-link-hover-color-rgb: 24, 52, 46;
 }
 
 body { background: #f7f8f5; color: var(--equiprent-ink); }
@@ -16,5 +21,33 @@ body { background: #f7f8f5; color: var(--equiprent-ink); }
 .auth-card { max-width: 30rem; }
 .form-card { max-width: 42rem; }
 .btn-primary { --bs-btn-bg: #236852; --bs-btn-border-color: #236852; --bs-btn-hover-bg: #18342e; --bs-btn-hover-border-color: #18342e; --bs-btn-active-bg: #18342e; --bs-btn-active-border-color: #18342e; }
+.btn-outline-primary { --bs-btn-color: #236852; --bs-btn-border-color: #236852; --bs-btn-hover-bg: #236852; --bs-btn-hover-border-color: #236852; --bs-btn-active-bg: #18342e; --bs-btn-active-border-color: #18342e; }
+.btn-outline-secondary { --bs-btn-color: #56625e; --bs-btn-border-color: #56625e; --bs-btn-hover-bg: #56625e; --bs-btn-hover-border-color: #56625e; }
 .table th, .table td { padding: 1rem; }
 .equipment-description { white-space: pre-wrap; }
+
+/* Conteúdo longo não deve alargar a página, inclusive nomes e códigos sem espaços. */
+body { min-height: 100vh; display: flex; flex-direction: column; }
+main { flex: 1; }
+main, header, footer { overflow-wrap: anywhere; }
+.d-flex > *, .row > * { min-width: 0; }
+.nav-link { color: var(--equiprent-ink); padding: .5rem .25rem; }
+.nav-link[aria-current="page"] { color: var(--equiprent-accent); font-weight: 700; text-decoration: underline; text-underline-offset: .4rem; }
+.btn, .form-control, .form-select { min-height: 2.75rem; }
+.btn { white-space: normal; }
+summary { cursor: pointer; padding-block: .5rem; }
+.form-control:focus-visible, .form-select:focus-visible, .btn:focus-visible, .form-check-input:focus-visible {
+    outline: 3px solid #a36b00; outline-offset: 3px;
+}
+.table-responsive { max-width: 100%; }
+.table-responsive:focus-visible { outline-offset: -3px; }
+.table { min-width: 40rem; }
+.table td { max-width: 24rem; overflow-wrap: anywhere; }
+.list-group-item { background: transparent; }
+@media (max-width: 575.98px) {
+    main.container { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+    header nav { padding-block: 1rem !important; }
+    header nav > div { gap: .5rem 1rem !important; }
+    .table th, .table td { padding: .75rem; }
+    .card.p-4 { padding: 1rem !important; }
+}

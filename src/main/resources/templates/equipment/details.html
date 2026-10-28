@@ -3,14 +3,14 @@
 <head th:replace="~{fragments/layout :: head(${equipment.name})}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
-<main id="conteudo" class="container py-5">
+<main id="conteudo" tabindex="-1" class="container py-5">
     <a th:href="@{/equipamentos}">Voltar para equipamentos</a>
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 mb-4">
         <div><p class="eyebrow text-secondary" th:text="${equipment.assetCode}"></p><h1 class="h2 mb-0" th:text="${equipment.name}"></h1></div>
         <a th:if="${isAdmin}" th:href="@{/admin/equipamentos/{id}/editar(id=${equipment.id})}" class="btn btn-outline-primary">Editar equipamento</a>
     </div>
     <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
-    <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+    <div th:if="${error}" class="alert alert-danger" role="alert" tabindex="-1" autofocus th:text="${error}"></div>
     <div class="row g-4">
         <div class="col-lg-8">
             <section class="card p-4 h-100" aria-labelledby="detalhes-titulo">
@@ -49,7 +49,8 @@
     <section th:if="${isAdmin and affectedReservations != null and affectedReservations.totalElements > 0}" class="card p-4 mt-4" aria-labelledby="afetadas-titulo">
         <h2 id="afetadas-titulo" class="h5">Reservas pendentes afetadas por manutenção ou atraso</h2>
         <p class="text-secondary">Estas reservas com término a partir de hoje foram preservadas. Regularize a manutenção ou a devolução atrasada antes de realizar a retirada, ou cancele a reserva com motivo.</p>
-        <div class="table-responsive">
+        <p class="small text-secondary d-lg-none">Deslize a tabela para ver todas as colunas. Pelo teclado, use as setas com a tabela em foco.</p>
+        <div class="table-responsive" role="region" aria-label="Tabela de reservas afetadas" tabindex="0">
             <table class="table">
                 <thead><tr><th scope="col">Reserva</th><th scope="col">Início</th><th scope="col">Fim</th></tr></thead>
                 <tbody><tr th:each="reservation : ${affectedReservations}">
@@ -59,7 +60,7 @@
                 </tr></tbody>
             </table>
         </div>
-        <nav class="d-flex gap-2" aria-label="Paginação das reservas afetadas">
+        <nav class="d-flex flex-wrap gap-2" aria-label="Paginação das reservas afetadas">
             <a th:if="${affectedReservations.number > 0}" th:href="@{/equipamentos/{id}(id=${equipment.id},affectedPage=0)}">Primeira página</a>
             <a th:if="${affectedReservations.hasPrevious()}" th:href="@{/equipamentos/{id}(id=${equipment.id},affectedPage=${affectedReservations.number - 1})}">Anterior</a>
             <a th:if="${affectedReservations.hasNext()}" th:href="@{/equipamentos/{id}(id=${equipment.id},affectedPage=${affectedReservations.number + 1})}">Próxima</a>

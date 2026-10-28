@@ -10,7 +10,7 @@
 </head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
-<main id="conteudo" class="container py-5">
+<main id="conteudo" tabindex="-1" class="container py-5">
     <section class="hero p-4 p-md-5 mb-5" aria-labelledby="titulo">
         <p class="eyebrow mb-3">ALUGUEL DE EQUIPAMENTOS</p>
         <h1 id="titulo" class="display-5 fw-semibold mb-4">Cada equipamento.<br>Cada reserva. Tudo organizado.</h1>
@@ -54,8 +54,6 @@
         </div>
     </section>
 </main>
-<footer class="container py-4 border-top text-secondary small">
-    EquipRent · Projeto de portfólio · Desenvolvido por etapas
-</footer>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>
 </html>

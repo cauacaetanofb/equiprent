@@ -6,7 +6,9 @@ Sistema web de aluguel de equipamentos para pequenas empresas, desenvolvido como
 
 **Implementado:** base Spring Boot, apresentação em português com Thymeleaf e Bootstrap local, PostgreSQL por ambiente, Compose, Maven Wrapper, modelo JPA e migração V1; login/logout por sessão, perfis ADMIN/CLIENTE, primeiro administrador por bootstrap opcional, página de conta e cadastro/listagem paginada/desativação de clientes pelo ADMIN. Catálogo com cadastro/edição administrativa, consulta pelo cliente, busca, filtros, paginação e controle de manutenção/aposentadoria. Disponibilidade, estimativa, criação e cancelamento de reservas, com valores históricos e eventos atômicos. Minhas reservas e visão administrativa, retirada/devolução, manutenção ao devolver, atrasos atuais e históricos, reservas afetadas e linha do tempo. Há testes MVC, unitários e de integração com PostgreSQL, incluindo concorrência.
 
-**Próximas etapas:** revisão visual e de acessibilidade, fluxo completo no navegador, CI com JDK 21 e preparação da demonstração de portfólio. Recuperação/troca de senha, reativação, cadastro público, pagamentos e multas não fazem parte desta entrega. Consulte [PLANEJAMENTO.md](PLANEJAMENTO.md) para as regras e etapas.
+**Interface revisada:** navegação com seção atual, foco nos erros, rótulos associados aos campos, contraste ajustado e tabelas roláveis por teclado em telas pequenas. Fluxo completo exercitado com contas separadas e CI com JDK 21 configurado.
+
+**Próxima etapa:** preparação da demonstração de portfólio. Recuperação/troca de senha, reativação, cadastro público, pagamentos e multas não fazem parte desta entrega. Consulte [PLANEJAMENTO.md](PLANEJAMENTO.md) para as regras e etapas.
 
 ## Tecnologias e decisões
 
@@ -405,4 +407,35 @@ Não houve instalação global de ferramentas nem publicação do projeto.
 
 ## Próximo passo
 
-Executar a etapa 7 do [planejamento](PLANEJAMENTO.md): revisar interface, acessibilidade e responsividade, conferir o fluxo completo no navegador com perfis separados e configurar CI executando toda a suite em JDK 21.
+Executar a etapa 8 do [planejamento](PLANEJAMENTO.md): preparar dados fictícios opcionais, capturas, demonstração curta e apresentação das decisões técnicas. Hospedagem/publicação continua sendo uma tarefa separada.
+
+## Validação da etapa 7 — 28/10/2026
+
+- `.\mvnw.cmd -B -ntp clean verify`: **BUILD SUCCESS**, **269 testes** (14 unitário/MVC e 255 de integração), sem falhas, erros ou ignorados, executados em **Temurin 21.0.12.1** efetivo. A pendência de JDK 21 registrada nas etapas anteriores foi resolvida. O JDK portátil foi obtido do [Adoptium](https://adoptium.net/installation/ci-scripts), verificado por SHA-256 e extraído em `.local`, sem mudar a instalação global.
+- Fluxo completo em Chrome headless com ADMIN e dois CLIENTEs em sessões independentes, usando PostgreSQL 17 descartável. Foram **52 verificações** de tela (26 estados em 1366 e 360 px), sem rolagem horizontal da página nem violações detectadas nas regras WCAG 2/2.1 A/AA selecionadas no axe. Tabelas têm rolagem própria. Capturas de layout, validação e histórico também foram inspecionadas.
+- Conferidos cadastro, duplicidade de e-mail, foco no erro, nome preservado/senha limpa, busca/paginação, reserva/estimativa, retirada, devolução com manutenção, cancelamento por teclado, histórico privado, moeda/datas, valores e textos máximos, telas vazias, erros 400/403/404 e logout. Nenhum recurso externo obrigatório foi solicitado.
+- Workflow validado com **actionlint 1.7.12**; `git diff --check` aprovado. Migração V1 intacta e dados de desenvolvimento preservados. Aplicação e banco descartáveis encerrados; ferramentas de revisão e evidências em `.local` ignoradas pelo Git.
+- Pendentes: primeira execução do workflow no GitHub após o push, testes em outros navegadores e com leitores de tela. A auditoria automatizada não estabelece conformidade integral de acessibilidade.
+
+## Interface, acessibilidade e roteiro de revisão
+
+A interface funciona sem JavaScript e sem CDN. A seção atual fica sublinhada na navegação; o primeiro `Tab` alcança “Ir para o conteúdo”. Erros recebem foco e os formulários preservam os campos seguros; a senha nunca volta preenchida. As tabelas mantêm cabeçalhos e semântica tabular, com rolagem horizontal limitada à região identificada: use gesto de deslizar ou `Tab` seguido das setas. Textos longos quebram dentro da página.
+
+O cancelamento exige abrir “Revisar cancelamento”, conferir as consequências e confirmar. Se houver erro, essa área fica aberta. Retirada e devolução têm ações separadas com explicação e confirmação; a opção de manutenção informa o efeito sobre reservas futuras. Telas 403/404/503 e o fallback de erros oferecem retorno à navegação, sem detalhes técnicos de exceções.
+
+Para repetir a revisão local, use dados fictícios e duas sessões independentes (por exemplo, janela normal e anônima).
+
+1. ADMIN: cadastre um cliente e duas unidades operacionais com diária de R$ 49,90. Tente cadastrar o mesmo e-mail novamente e confira o erro, o foco e a preservação do nome.
+2. CLIENTE: busque equipamentos com início e fim **hoje**, selecione um item por página e avance. Busca, categoria, condição, datas e ordenação devem permanecer.
+3. Consulte a estimativa e confirme uma reserva de um dia: total de R$ 49,90. Confira “Minhas reservas”, detalhes e criação na linha do tempo.
+4. ADMIN: abra a reserva em `/admin/reservas`, confirme a retirada e depois a devolução. Teste a opção de manutenção: a unidade deixa de aceitar novas reservas, com histórico e valor preservados.
+5. CLIENTE: faça outra reserva na unidade livre e use “Revisar cancelamento”. Confira o evento e a liberação do período. Uma segunda conta CLIENTE não pode abrir os detalhes dessa reserva; `/admin/clientes` deve ser negado ao CLIENTE.
+6. Repita em desktop e com viewport de **360 px**, incluindo navegação por teclado, rolagem das tabelas, filtros sem resultados e páginas fora do intervalo. Confira datas brasileiras, moeda, logout e retorno após erros.
+
+A revisão automatizada de acessibilidade cobre problemas detectáveis por axe; não equivale a uma certificação WCAG nem substitui testes com leitores de tela e outros navegadores.
+
+## Integração contínua
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) executa `bash ./mvnw -B -ntp clean verify` em Ubuntu com Temurin **21**, a cada push em `main`, pull request ou disparo manual. O Testcontainers inicia PostgreSQL 17 descartável; não é preciso cadastrar `.env`, senhas ou um banco externo no GitHub. As permissões são de leitura do código; os relatórios Surefire/Failsafe ficam disponíveis como artefato por sete dias, inclusive quando um teste falha.
+
+As ações estão fixadas por SHA, com suas versões nos comentários. Referências: [setup-java](https://github.com/actions/setup-java), [checkout](https://github.com/actions/checkout) e [upload-artifact](https://github.com/actions/upload-artifact). O wrapper é chamado por `bash` porque está versionado sem bit executável. Depois do primeiro push desta etapa, acompanhe o workflow na aba **Actions** do repositório: a execução remota só pode ser confirmada após esse envio.

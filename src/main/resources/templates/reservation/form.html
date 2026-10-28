@@ -3,13 +3,13 @@
 <head th:replace="~{fragments/layout :: head('Nova reserva')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
-<main id="conteudo" class="container py-5">
+<main id="conteudo" tabindex="-1" class="container py-5">
     <a th:href="@{/equipamentos}">Voltar ao catálogo</a>
     <h1 class="h2 mt-4">Nova reserva</h1>
     <p th:if="${equipment != null}" class="lead" th:text="|${equipment.name} · ${equipment.assetCode}|"></p>
     <p class="text-secondary">O primeiro e o último dia contam no aluguel. Escolha um período de até 365 diárias.</p>
     <form th:action="@{/reservas/nova}" th:object="${reservationForm}" method="get" class="card p-4 mb-4">
-        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert" tabindex="-1" autofocus>
             <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
         </div>
         <input th:field="*{equipmentId}" type="hidden">

@@ -3,10 +3,11 @@
 <head th:replace="~{fragments/layout :: head('Acesso não permitido')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
-<main id="conteudo" class="container py-5">
+<main id="conteudo" tabindex="-1" class="container py-5">
     <h1 class="h2">Acesso não permitido</h1>
     <p>Você não tem permissão para esta ação ou o formulário expirou. Volte à página anterior e tente novamente.</p>
     <a th:href="@{/conta}" class="btn btn-primary">Minha conta</a>
 </main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>
 </html>

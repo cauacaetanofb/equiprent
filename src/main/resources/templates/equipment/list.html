@@ -3,14 +3,14 @@
 <head th:replace="~{fragments/layout :: head('Equipamentos')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
-<main id="conteudo" class="container py-5">
+<main id="conteudo" tabindex="-1" class="container py-5">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div><p class="eyebrow text-secondary">CATÁLOGO</p><h1 class="h2 mb-0">Equipamentos</h1></div>
         <a th:if="${isAdmin}" th:href="@{/admin/equipamentos/novo}" class="btn btn-primary">Cadastrar equipamento</a>
     </div>
     <p class="text-secondary">Cada item representa uma unidade física. A condição operacional não garante disponibilidade para um período específico.</p>
     <form th:action="@{/equipamentos}" th:object="${filter}" method="get" class="card p-4 mb-4" aria-label="Filtros do catálogo">
-        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert" tabindex="-1" autofocus>
             <p class="mb-1">Revise os filtros informados:</p>
             <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
         </div>
@@ -54,7 +54,7 @@
             </div>
             <p id="period-help" class="small text-secondary mb-0">Preencha as duas datas para buscar somente unidades disponíveis. A disponibilidade será revalidada ao confirmar a reserva.</p>
         </div>
-        <div class="d-flex gap-2 mt-3">
+        <div class="d-flex flex-wrap gap-2 mt-3">
             <button type="submit" class="btn btn-primary">Buscar</button>
             <a th:href="@{/equipamentos}" class="btn btn-outline-secondary">Limpar filtros</a>
         </div>
@@ -65,7 +65,8 @@
         <a class="mt-3" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},startDate=${filter.startDate},endDate=${filter.endDate})}">Primeira página</a>
     </div>
     <div th:unless="${equipmentPage.empty}" class="card overflow-hidden">
-        <div class="table-responsive">
+        <p class="small text-secondary px-3 pt-3 mb-0 d-lg-none">Deslize a tabela para ver todas as colunas. Pelo teclado, use as setas com a tabela em foco.</p>
+        <div class="table-responsive" role="region" aria-label="Tabela de equipamentos" tabindex="0">
             <table class="table align-middle mb-0">
                 <caption class="visually-hidden">Unidades físicas de equipamentos cadastradas</caption>
                 <thead><tr><th scope="col">Equipamento</th><th scope="col">Categoria</th><th scope="col">Diária</th><th scope="col">Condição física</th></tr></thead>
@@ -82,7 +83,7 @@
     </div>
     <nav class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4" aria-label="Paginação dos equipamentos">
         <p class="small text-secondary mb-0" th:text="|${equipmentPage.totalElements} equipamento(s) encontrado(s)|"></p>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
             <a th:if="${equipmentPage.hasPrevious()}" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},page=${equipmentPage.number - 1},startDate=${filter.startDate},endDate=${filter.endDate})}" class="btn btn-outline-secondary">Anterior</a>
             <a th:if="${equipmentPage.hasNext()}" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},page=${equipmentPage.number + 1},startDate=${filter.startDate},endDate=${filter.endDate})}" class="btn btn-outline-secondary">Próxima</a>
         </div>

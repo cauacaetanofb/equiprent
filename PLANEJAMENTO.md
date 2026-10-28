@@ -4,7 +4,7 @@
 
 Organizar a locação de equipamentos de uma pequena empresa, substituindo controles dispersos por um catálogo de unidades físicas, reservas por período e histórico de retirada e devolução. O projeto deve demonstrar fundamentos de desenvolvimento web, integridade de dados, autorização e testes em entrevistas de estágio e nível júnior.
 
-**Entrega atual:** etapas 0 a 6 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE, clientes, catálogo, disponibilidade, estimativa, criação/cancelamento de reservas, listagens por perfil, retirada/devolução, manutenção ao devolver, atrasos e linha do tempo. Há testes em PostgreSQL, inclusive concorrentes. Execução efetiva em JDK 21 permanece pendente. A próxima etapa é acabamento, revisão visual do fluxo completo e CI.
+**Entrega atual:** etapas 0 a 7 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE, clientes, catálogo, disponibilidade, estimativa, criação/cancelamento de reservas, listagens por perfil, retirada/devolução, manutenção ao devolver, atrasos e linha do tempo. Interface revisada em desktop/360 px, fluxo completo exercitado no navegador e CI com JDK 21 configurado. Suite aprovada em JDK 21 efetivo, com 269 testes e PostgreSQL, inclusive concorrência. A próxima etapa é preparar a demonstração de portfólio; a primeira execução remota do CI depende do push desta entrega.
 
 ### Primeira versão
 
@@ -383,18 +383,26 @@ Atraso atual calculado por data civil de São Paulo; devolução tardia usa a da
 
 ### Etapa 7 — Acabamento e fluxo completo (depende da 6)
 
-- [ ] Padronizar navegação, layout, formulários e mensagens de erro.
-- [ ] Revisar telas vazias, filtros persistidos na paginação e confirmações.
-- [ ] Revisar valores em reais, datas brasileiras, labels, foco e navegação por teclado.
-- [ ] Testar desktop e largura de 360 px sem rolagem horizontal indevida.
-- [ ] Executar fluxo completo com contas separadas de ADMIN e CLIENTE.
-- [ ] Configurar CI com JDK 21, testes unitários/MVC e integração PostgreSQL.
+- [x] Padronizar navegação, layout, formulários e mensagens de erro.
+- [x] Revisar telas vazias, filtros persistidos na paginação e confirmações.
+- [x] Revisar valores em reais, datas brasileiras, labels, foco e navegação por teclado.
+- [x] Testar desktop e largura de 360 px sem rolagem horizontal indevida.
+- [x] Executar fluxo completo com contas separadas de ADMIN e CLIENTE.
+- [x] Configurar CI com JDK 21, testes unitários/MVC e integração PostgreSQL.
 
 **Conclusão:** fluxo cadastro → consulta → reserva → retirada → devolução funciona e o histórico é coerente. Suite completa passa em JDK 21; nenhum endpoint administrativo depende só de botões ocultos.
 
 **Testes:** roteiro ponta a ponta, erros 403/404, validações preservando dados digitados, ausência de recursos externos obrigatórios e revisão de consultas para evitar N+1 nas listagens.
 
 **Aprendizado:** integração, experiência do usuário, acessibilidade básica e automação de qualidade.
+
+**Decisões implementadas:** navegação indica a seção atual com `aria-current`; destino do link de salto e alertas recebem foco nativo, sem JavaScript. Labels de checkboxes usam o ID gerado pelo Thymeleaf. Tabelas preservam semântica e cabeçalhos, com região nomeada/focável para rolagem por teclado e gesto; nomes e códigos longos não alargam a página. Cores secundárias e botões foram ajustados após detectar contraste insuficiente sobre o fundo. Erros compartilham navegação/rodapé e há fallback amigável. Cancelamento fica em confirmação expansível, aberta após validação inválida. Lista vazia de clientes permite recuperar a primeira página.
+
+**Revisão de interface em 28/10/2026:** Chrome headless com Playwright e axe em banco PostgreSQL 17 descartável, com ADMIN e dois CLIENTEs em sessões separadas. Foram 52 verificações (26 estados de tela × 1366/360 px), sem overflow da página e sem violações detectadas nas regras WCAG 2 A/AA e 2.1 A/AA selecionadas. Conferidos fluxo completo, manutenção, cancelamento por teclado, datas/moeda, paginação preservando filtros, telas vazias, erros 400/403/404, foco e preservação de dados após e-mail duplicado, histórico privado, valores/textos máximos e logout. Recursos externos obrigatórios: zero. Capturas inspecionadas para layout, formulário com erro e linha do tempo; ferramentas e evidências ficaram em `.local`, fora do Git. Instância/banco temporários encerrados; dados de desenvolvimento preservados. Outros navegadores e leitores de tela não foram exercitados.
+
+**CI:** workflow com ações fixadas por SHA, cache Maven, `clean verify`, limite de 20 minutos e relatórios de testes por sete dias. Passou no actionlint 1.7.12. Usa Temurin 21 e PostgreSQL 17 via Testcontainers, sem `.env` ou segredos do ambiente local. Execução no GitHub Actions fica pendente do primeiro push desta etapa.
+
+**Resultado em 28/10/2026:** `clean verify` aprovado com **269 testes** (14 unitário/MVC e 255 de integração), zero falhas, erros ou ignorados. Execução efetiva em **Temurin 21.0.12.1**, baixado do Adoptium e verificado por SHA-256, extraído apenas em `.local` sem instalação global. Dois testes adicionados cobrem navegação por perfil, recuperação de página vazia e marcação de foco/validação com preservação de campos seguros. Suite existente voltou a validar segurança, domínio, rollback, concorrência e limites de consultas. V1 intacta. A pendência histórica de execução em JDK 21 das etapas anteriores está resolvida; o CI remoto e testes com outros navegadores/leitores de tela permanecem sem execução nesta entrega.
 
 ### Etapa 8 — Preparação do portfólio (depende da 7)
 

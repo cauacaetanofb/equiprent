@@ -3,19 +3,22 @@
 <head th:replace="~{fragments/layout :: head('Clientes')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
-<main id="conteudo" class="container py-5">
+<main id="conteudo" tabindex="-1" class="container py-5">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div><p class="eyebrow text-secondary">ADMINISTRAÇÃO</p><h1 class="h2 mb-0">Clientes</h1></div>
         <a th:href="@{/admin/clientes/novo}" class="btn btn-primary">Cadastrar cliente</a>
     </div>
     <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
-    <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+    <div th:if="${error}" class="alert alert-danger" role="alert" tabindex="-1" autofocus th:text="${error}"></div>
     <div th:if="${customers.empty}" class="card p-4">
         <h2 class="h5">Nenhum cliente nesta página</h2>
-        <p class="text-secondary mb-0">Cadastre o primeiro cliente para liberar seu acesso ao sistema.</p>
+        <p th:if="${customers.totalElements == 0}" class="text-secondary mb-0">Cadastre o primeiro cliente para liberar seu acesso ao sistema.</p>
+        <p th:unless="${customers.totalElements == 0}" class="text-secondary mb-0">Esta página não contém clientes. Volte à primeira página para consultar os cadastros.</p>
+        <a th:if="${customers.number > 0}" th:href="@{/admin/clientes}" class="mt-3">Primeira página</a>
     </div>
     <div th:unless="${customers.empty}" class="card overflow-hidden">
-        <div class="table-responsive">
+        <p class="small text-secondary px-3 pt-3 mb-0 d-lg-none">Deslize a tabela para ver todas as colunas. Pelo teclado, use as setas com a tabela em foco.</p>
+        <div class="table-responsive" role="region" aria-label="Tabela de clientes" tabindex="0">
             <table class="table align-middle mb-0">
                 <caption class="visually-hidden">Clientes cadastrados e situação do acesso</caption>
                 <thead><tr><th scope="col">Nome</th><th scope="col">E-mail</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead>
@@ -41,7 +44,7 @@
     </div>
     <nav class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4" aria-label="Paginação dos clientes">
         <p class="small text-secondary mb-0" th:text="|${customers.totalElements} cliente(s) cadastrado(s)|"></p>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
             <a th:if="${customers.hasPrevious()}" th:href="@{/admin/clientes(page=${customers.number - 1})}" class="btn btn-outline-secondary">Anterior</a>
             <a th:if="${customers.hasNext()}" th:href="@{/admin/clientes(page=${customers.number + 1})}" class="btn btn-outline-secondary">Próxima</a>
         </div>

@@ -13,11 +13,11 @@
     <nav class="container py-4 d-flex flex-wrap align-items-center justify-content-between gap-3" aria-label="Navegação principal">
         <a class="brand text-decoration-none" th:href="@{/}" aria-label="EquipRent — página inicial">Equip<span>Rent</span></a>
         <div class="d-flex flex-wrap gap-3 align-items-center">
-            <a th:if="${signedIn}" th:href="@{/equipamentos}" class="nav-link">Equipamentos</a>
-            <a th:if="${isAdmin}" th:href="@{/admin/clientes}" class="nav-link">Clientes</a>
-            <a th:if="${isAdmin}" th:href="@{/admin/reservas}" class="nav-link">Reservas</a>
-            <a th:if="${signedIn == true and isAdmin != true}" th:href="@{/reservas}" class="nav-link">Minhas reservas</a>
-            <a th:if="${signedIn}" th:href="@{/conta}" class="nav-link">Minha conta</a>
+            <a th:if="${signedIn}" th:href="@{/equipamentos}" class="nav-link" th:attr="aria-current=${activeNavigation == 'equipment' ? 'page' : null}">Equipamentos</a>
+            <a th:if="${isAdmin}" th:href="@{/admin/clientes}" class="nav-link" th:attr="aria-current=${activeNavigation == 'customers' ? 'page' : null}">Clientes</a>
+            <a th:if="${isAdmin}" th:href="@{/admin/reservas}" class="nav-link" th:attr="aria-current=${activeNavigation == 'reservations' ? 'page' : null}">Reservas</a>
+            <a th:if="${signedIn == true and isAdmin != true}" th:href="@{/reservas}" class="nav-link" th:attr="aria-current=${activeNavigation == 'reservations' ? 'page' : null}">Minhas reservas</a>
+            <a th:if="${signedIn}" th:href="@{/conta}" class="nav-link" th:attr="aria-current=${activeNavigation == 'account' ? 'page' : null}">Minha conta</a>
             <a th:unless="${signedIn}" th:href="@{/login}" class="btn btn-primary">Entrar</a>
             <form th:if="${signedIn}" th:action="@{/logout}" method="post">
                 <button type="submit" class="btn btn-outline-secondary">Sair</button>

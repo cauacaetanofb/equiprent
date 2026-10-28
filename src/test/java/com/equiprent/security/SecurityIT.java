@@ -116,6 +116,38 @@ class SecurityIT {
     }
 
     @Test
+    void shouldExposeAccessibleNavigationAndRecoverFromEmptyCustomerPage() throws Exception {
+        var admin = login(ADMIN_EMAIL, ADMIN_PASSWORD);
+        mvc.perform(get("/admin/clientes").param("page", "99").session(admin))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("activeNavigation", "customers"))
+                .andExpect(content().string(containsString("href=\"/admin/clientes\" class=\"nav-link\" aria-current=\"page\"")))
+                .andExpect(content().string(containsString("id=\"conteudo\" tabindex=\"-1\"")))
+                .andExpect(content().string(containsString("Primeira página")))
+                .andExpect(content().string(not(containsString("Cadastre o primeiro cliente"))));
+        mvc.perform(get("/admin/equipamentos/novo").session(admin))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/equipamentos\" class=\"nav-link\" aria-current=\"page\"")));
+        var client = login(CUSTOMER_EMAIL, CUSTOMER_PASSWORD);
+        mvc.perform(get("/reservas").session(client))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/reservas\" class=\"nav-link\" aria-current=\"page\"")))
+                .andExpect(content().string(containsString("for=\"overdueOnly1\"")));
+    }
+
+    @Test
+    void shouldFocusValidationMessageAndPreserveSafeFields() throws Exception {
+        mvc.perform(post("/admin/clientes").session(login(ADMIN_EMAIL, ADMIN_PASSWORD)).with(csrf())
+                        .param("name", "Nome preservado").param("email", "invalido")
+                        .param("password", CUSTOMER_PASSWORD))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("role=\"alert\" tabindex=\"-1\" autofocus")))
+                .andExpect(content().string(containsString("value=\"Nome preservado\"")))
+                .andExpect(content().string(containsString("aria-invalid=\"true\"")))
+                .andExpect(content().string(not(containsString(CUSTOMER_PASSWORD))));
+    }
+
+    @Test
     void shouldExposePublicPagesAndLocalCss() throws Exception {
         mvc.perform(get("/")).andExpect(status().isOk()).andExpect(content().string(containsString("Entrar")));
         mvc.perform(get("/login")).andExpect(status().isOk())

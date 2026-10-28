@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Não foi possível concluir')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" tabindex="-1" class="container py-5">
+    <section class="card p-4">
+        <h1 class="h2">Não foi possível concluir</h1>
+        <p>Confira o endereço e os dados informados. Se o problema continuar, tente novamente mais tarde.</p>
+        <p class="text-secondary">Se você estava confirmando uma ação, consulte o registro antes de repetir.</p>
+        <a th:href="@{/conta}">Voltar à minha conta</a>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

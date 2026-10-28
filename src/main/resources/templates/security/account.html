@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Minha conta')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
-<main id="conteudo" class="container py-5">
+<main id="conteudo" tabindex="-1" class="container py-5">
     <p class="eyebrow text-secondary">MINHA CONTA</p>
     <h1 class="h2 mb-4">Olá, <span th:text="${accountName}">usuário</span>!</h1>
     <section class="card p-4 mb-4" aria-labelledby="dados-titulo">
