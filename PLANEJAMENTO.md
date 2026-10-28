@@ -4,7 +4,7 @@
 
 Organizar a locação de equipamentos de uma pequena empresa, substituindo controles dispersos por um catálogo de unidades físicas, reservas por período e histórico de retirada e devolução. O projeto deve demonstrar fundamentos de desenvolvimento web, integridade de dados, autorização e testes em entrevistas de estágio e nível júnior.
 
-**Entrega atual:** etapas 0, 1 e 2 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE e cadastro/listagem/desativação de clientes, com testes em PostgreSQL. A execução em JDK 21 permanece uma verificação de ambiente pendente. O catálogo de equipamentos e as operações de reserva ainda não estão implementados. As regras operacionais abaixo orientam as próximas etapas.
+**Entrega atual:** etapas 0 a 4 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE, cadastro/listagem/desativação de clientes, catálogo e condições de equipamentos, disponibilidade por período, estimativa e criação transacional de reservas com evento e confirmação privada. Há testes em PostgreSQL, inclusive concorrentes. Execução efetiva em JDK 21 permanece pendente. Listagem/cancelamento de reservas, retirada e devolução são as próximas etapas.
 
 ### Primeira versão
 
@@ -32,15 +32,15 @@ com.equiprent
   user/                                    # implementado na etapa 2
     User, UserRole, UserRepository
     UserService, UserController, UserForm, UserSummary
-  equipment/                               # entidades e repository implementados
+  equipment/                               # catálogo e condição física implementados na etapa 3
     Equipment, EquipmentCondition, EquipmentCategory
     EquipmentRepository, EquipmentService, EquipmentController
     EquipmentForm, EquipmentSummary
-  reservation/                             # entidades e repositories implementados
+  reservation/                             # disponibilidade e criação implementadas na etapa 4
     Reservation, ReservationStatus, ReservationEvent
     ReservationRepository, ReservationEventRepository
-    ReservationService, AvailabilityService, ReservationController
-    ReservationForm, ReservationSummary
+    ReservationService, ReservationController, RentalPeriod, AvailabilityRules
+    ReservationForm, ReservationEstimate, ReservationConfirmation
   security/                                # implementado na etapa 2
     SecurityConfig, CustomUserDetailsService, CurrentUser
     ActiveUserFilter, AdminBootstrap, AccountController
@@ -49,12 +49,12 @@ com.equiprent
     configuração de Clock e tratamento de erros comuns
 
 resources/templates/{home,user,security,fragments,error}/  # implementadas
-resources/templates/{equipment,reservation}/              # futuras
+resources/templates/{equipment,reservation}/              # implementadas
 resources/static/{css,vendor}/
 resources/db/migration/V1__create_initial_schema.sql  # implementada
 ```
 
-Services, controllers e formulários de equipamentos e reservas continuam planejados. Não foram criadas classes vazias para eles. O Clock da zona de negócio já está disponível na configuração e é usado nos cadastros.
+Services, controllers e formulários do catálogo e da criação de reservas estão implementados. Disponibilidade é uma consulta paginada do catálogo; seu predicado de bloqueio é compartilhado com a confirmação. O Clock da zona de negócio é usado nos cadastros, períodos e auditoria. Não há classes vazias para operações futuras.
 
 O controller recebe formulários, valida entradas e escolhe a view. O service aplica regras, autorização por proprietário e transações. O repository consulta e persiste. Entidades representam o estado persistente; formulários não recebem campos como papel, proprietário ou preço histórico do navegador. Objetos de saída são introduzidos quando necessários para montar views sem consultas fora do service.
 
@@ -126,7 +126,7 @@ erDiagram
     }
 ```
 
-Chaves estrangeiras obrigatórias e com `ON DELETE RESTRICT`, sem cascatas JPA. `customerId` deve apontar para um CLIENTE; essa regra entre registros será validada no futuro service. Já existem índices por equipamento/status/período, cliente/data de criação, evento/reserva/instante e autor do evento. Validar planos e ajustar índices quando as consultas de negócio existirem, sem antecipar otimizações.
+Chaves estrangeiras obrigatórias e com `ON DELETE RESTRICT`, sem cascatas JPA. `customerId` deve apontar para um CLIENTE; o service de reserva valida essa regra e obtém o proprietário da sessão. Já existem índices por equipamento/status/período, cliente/data de criação, evento/reserva/instante e autor do evento. Validar planos e ajustar índices conforme as consultas de negócio evoluírem, sem antecipar otimizações.
 
 Restrições de banco: fim >= início, diária e total positivos, valores de enums válidos e timestamps compatíveis com o estado. Preço e total são snapshots imutáveis; alteração do catálogo não reescreve reservas. O código patrimonial permanece estável para identificar o item mesmo se nome ou descrição mudarem. O histórico não pretende guardar cada edição de perfil ou descrição; essa auditoria ampliada é evolução futura.
 
@@ -144,7 +144,7 @@ Restrições de banco: fim >= início, diária e total positivos, valores de enu
 
 Construtores JPA protegidos e construtores explícitos para criação; sem setters genéricos. Relações `ManyToOne` usam `LAZY`, sem listas bidirecionais desnecessárias. O chamador informa os instantes; na etapa de negócio eles virão de um `Clock` injetado. Código patrimonial, datas e valores contratados não são atualizáveis pelo mapeamento JPA. Eventos usam `@Immutable` e repository sem método de exclusão; isso não impede alterações via SQL administrativo.
 
-O construtor monetário usa escala 2 com `RoundingMode.UNNECESSARY`, rejeitando frações de centavo antes de o PostgreSQL arredondá-las. Positividade e precisão máxima são protegidas no banco. Validação dos formulários com mensagens amigáveis será adicionada nas próximas etapas.
+O construtor monetário usa escala 2 com `RoundingMode.UNNECESSARY`, rejeitando frações de centavo antes de o PostgreSQL arredondá-las. Positividade e precisão máxima são protegidas no banco. Formulários e services também validam entradas com mensagens amigáveis, incluindo o total calculado na criação da reserva.
 
 A V1 verifica a coerência de cada par de estados em um evento e dos timestamps de cada reserva. Ela ainda não garante a sequência completa entre eventos, um evento para toda alteração, o perfil do autor, disponibilidade ou ausência de reservas sobrepostas. Os testes de persistência não substituem os futuros testes de service, autorização e concorrência. Os SQLs que simulam alterações nos testes servem apenas para validar o modelo.
 
@@ -154,7 +154,7 @@ A V1 verifica a coerência de cada par de estados em um evento e dos timestamps 
 
 Adotar dias civis **inclusivos** na zona `America/Sao_Paulo`: início e fim pertencem ao aluguel. `days = ChronoUnit.DAYS.between(startDate, endDate) + 1`. Uma reserva em 10/11/2026 até 10/11/2026 custa uma diária; até 12/11 custa três. A devolução pode acontecer até o fim do último dia. Reservas contíguas sem conflito começam no dia seguinte ao fim da anterior.
 
-Na criação: início >= hoje, fim >= início e limite proposto de 365 diárias para evitar entradas absurdas. Usar `Clock` injetável para não depender do relógio do computador nos testes. Limites e mensagens são validados no servidor, mesmo que o HTML também limite os campos.
+Na criação: início >= hoje, fim >= início e limite implementado de 365 diárias. Usar `Clock` injetável para não depender do relógio do computador nos testes. Limites e mensagens são validados no servidor, mesmo que o HTML também limite os campos. Datas aceitam anos até 9999, compatíveis com o formulário; totais acima de R$ 999.999.999.999,99 são recusados antes da gravação para respeitar `numeric(14,2)`.
 
 Dinheiro em reais com `BigDecimal`, criado a partir de texto, nunca de `double`. A diária aceita no máximo duas casas e valor positivo; rejeitar frações adicionais em vez de arredondar silenciosamente. Copiar a diária do equipamento dentro da transação e calcular `dailyRateSnapshot.multiply(BigDecimal.valueOf(days))`, em escala 2. Exemplo: R$ 49,90 × 3 = R$ 149,70. O total é uma estimativa contratada; devolução antecipada ou tardia não recalcula automaticamente e não gera multa nesta versão.
 
@@ -304,12 +304,12 @@ Manutenção é proibida com `IN_USE`; com `RESERVED`, as reservas permanecem e 
 
 ### Etapa 4 — Disponibilidade, estimativa e criação (depende da 3)
 
-- [ ] Usar o `Clock` já disponível e implementar o cálculo de diárias inclusivas.
-- [ ] Criar busca de equipamentos disponíveis por período.
-- [ ] Implementar estimativa no servidor e snapshot de diária na reserva.
-- [ ] Implementar transação com bloqueio pessimista do equipamento.
-- [ ] Registrar criação e evento atomicamente, associando o cliente autenticado.
-- [ ] Exibir confirmação e mensagem amigável em conflito.
+- [x] Usar o `Clock` já disponível e implementar o cálculo de diárias inclusivas.
+- [x] Criar busca de equipamentos disponíveis por período.
+- [x] Implementar estimativa no servidor e snapshot de diária na reserva.
+- [x] Implementar transação com bloqueio pessimista do equipamento.
+- [x] Registrar criação e evento atomicamente, associando o cliente autenticado.
+- [x] Exibir confirmação e mensagem amigável em conflito.
 
 **Conclusão:** duas tentativas simultâneas sobrepostas para a mesma unidade geram exatamente uma reserva; a outra falha por indisponibilidade. A estimativa e o proprietário não podem ser adulterados pelo formulário. A consulta de disponibilidade e a criação usam as mesmas regras.
 
@@ -331,6 +331,12 @@ Manutenção é proibida com `IN_USE`; com `RESERVED`, as reservas permanecem e 
 O teste concorrente usa duas threads e duas transações reais, conexões distintas e PostgreSQL Testcontainers. Preparar os dados com commit antes das threads, coordenar o início com barreira/latch e limitar esperas com timeout. Não usar um único teste `@Transactional` que esconda commits; não validar concorrência com mocks. Conferir reservas **e** eventos após ambas as operações. Testar também reservas não conflitantes simultâneas, criação concorrente com entrada em manutenção e criação concorrente com desativação do cliente.
 
 **Aprendizado:** condições de corrida, isolamento, bloqueios, atomicidade e cálculos determinísticos.
+
+**Decisões implementadas:** datas opcionais em conjunto na busca do catálogo e obrigatórias na reserva; a mesma expressão de reservas bloqueantes é usada nas duas consultas. Estimativa GET não grava nem segura a unidade. Confirmação POST usa o preço vigente sob bloqueio e gera reserva/evento na mesma transação `READ_COMMITTED`; o usuário é recarregado após o bloqueio para enxergar desativação concorrente. Formulário aceita somente equipamento e datas. A URL de confirmação pertence ao CLIENTE titular; outro cliente recebe 404. ADMIN consulta disponibilidade, mas não cria reservas em nome de clientes nesta versão.
+
+Valores da estimativa podem mudar antes da confirmação; a interface informa a revalidação. Depois da criação, o snapshot não muda. Conflitos e timeout de bloqueio reapresentam as datas com mensagem amigável. O teste de timeout configura limite menor exclusivamente no PostgreSQL descartável. A V1 permanece intacta. Listagem de reservas e cancelamento não foram antecipados.
+
+**Resultado em 27/10/2026:** `clean verify` aprovado com 190 testes (14 unitário/MVC, 75 de persistência, 32 de segurança, 40 de catálogo e 29 de reservas), sem falhas/erros/ignorados. Os cenários obrigatórios acima foram cobertos, incluindo transações concorrentes e rollback de reserva/evento. Testes com PostgreSQL 17 descartável e relógio controlado, sem tocar no banco de desenvolvimento. Execução em JDK 25 com `release 21`; JDK 21 efetivo e revisão visual manual seguem pendentes.
 
 ### Etapa 5 — Minhas reservas e cancelamento (depende da 4)
 
@@ -396,10 +402,9 @@ As seguintes propostas permitem avançar sem bloquear a base, mas devem ser revi
 
 | Decisão | Premissa inicial | Momento da revisão |
 | --- | --- | --- |
-| Limite de período | Até 365 diárias; dias inclusivos | Etapa 4 |
-| Manutenção com reservas futuras | Manter reservas, impedir retirada e sinalizar ao ADMIN | Etapas 3 e 6 |
+| Manutenção com reservas futuras | Reservas preservadas e sinalizadas ao ADMIN na etapa 3; integrar retirada | Etapa 6 |
 | Devolução antecipada | Libera uso após conferência, sem recálculo do contrato | Etapa 6 |
-| Atraso em uso | Bloquear novas reservas de qualquer período até regularização | Etapas 4 e 6 |
+| Atraso em uso | Bloqueio de novas reservas implementado na etapa 4; integrar devolução e visualização | Etapa 6 |
 | Horário comercial e tolerância | Sem janela de horas; prazo por dia civil | Antes de uso real |
 
 Não introduzir pagamento, multas, mensagens assíncronas ou múltiplas empresas para resolver essas pendências. Registrar qualquer mudança de regra junto dos exemplos e testes correspondentes.

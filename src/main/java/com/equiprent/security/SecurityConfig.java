@@ -22,6 +22,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/", "/login", "/css/**", "/vendor/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/equipamentos", "/equipamentos/**").authenticated()
+                        .requestMatchers("/reservas", "/reservas/**").hasRole("CLIENTE")
                         .requestMatchers("/conta").authenticated()
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/login").usernameParameter("email")

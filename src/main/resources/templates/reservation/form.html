@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Nova reserva')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5">
+    <a th:href="@{/equipamentos}">Voltar ao catálogo</a>
+    <h1 class="h2 mt-4">Nova reserva</h1>
+    <p th:if="${equipment != null}" class="lead" th:text="|${equipment.name} · ${equipment.assetCode}|"></p>
+    <p class="text-secondary">O primeiro e o último dia contam no aluguel. Escolha um período de até 365 diárias.</p>
+    <form th:action="@{/reservas/nova}" th:object="${reservationForm}" method="get" class="card p-4 mb-4">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert">
+            <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
+        </div>
+        <input th:field="*{equipmentId}" type="hidden">
+        <div class="row g-3 align-items-end">
+            <div class="col-sm-4">
+                <label for="startDate" class="form-label">Início</label>
+                <input th:field="*{startDate}" type="date" class="form-control" th:min="${today}" max="9999-12-31" required>
+            </div>
+            <div class="col-sm-4">
+                <label for="endDate" class="form-label">Fim (inclusive)</label>
+                <input th:field="*{endDate}" type="date" class="form-control" th:min="${today}" max="9999-12-31" required>
+            </div>
+            <div class="col-sm-4"><button class="btn btn-primary" type="submit">Consultar estimativa</button></div>
+        </div>
+    </form>
+    <section th:if="${estimate != null}" class="card p-4" aria-labelledby="estimativa-titulo">
+        <h2 id="estimativa-titulo" class="h4">Confira antes de confirmar</h2>
+        <p th:text="|${estimate.equipmentName} · ${estimate.assetCode}|"></p>
+        <p><strong th:text="${#temporals.format(reservationForm.startDate, 'dd/MM/yyyy')}"></strong> até
+            <strong th:text="${#temporals.format(reservationForm.endDate, 'dd/MM/yyyy')}"></strong></p>
+        <p th:text="|${estimate.days} diária(s) × R$ ${#numbers.formatDecimal(estimate.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></p>
+        <p class="h3" th:text="|Total estimado: R$ ${#numbers.formatDecimal(estimate.total, 1, 'POINT', 2, 'COMMA')}|"></p>
+        <p class="text-secondary">Esta consulta não segura o equipamento. A disponibilidade e o valor vigente serão conferidos novamente ao confirmar. Se mudar as datas acima, consulte uma nova estimativa.</p>
+        <form th:action="@{/reservas}" method="post">
+            <input type="hidden" name="equipmentId" th:value="${reservationForm.equipmentId}">
+            <input type="hidden" name="startDate" th:value="${reservationForm.startDate}">
+            <input type="hidden" name="endDate" th:value="${reservationForm.endDate}">
+            <button class="btn btn-success" type="submit">Confirmar reserva deste período</button>
+        </form>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

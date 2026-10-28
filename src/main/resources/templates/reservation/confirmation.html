@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Reserva confirmada')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" class="container py-5">
+    <section class="card p-4 p-md-5 form-card mx-auto" aria-labelledby="titulo">
+        <p class="eyebrow text-success">RESERVA REGISTRADA</p>
+        <h1 id="titulo" class="h2" th:text="|Reserva #${reservation.id} confirmada|"></h1>
+        <p class="lead" th:text="|${reservation.equipmentName} · ${reservation.assetCode}|"></p>
+        <dl class="row">
+            <dt class="col-sm-5">Início</dt><dd class="col-sm-7" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></dd>
+            <dt class="col-sm-5">Fim (inclusive)</dt><dd class="col-sm-7" th:text="${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}"></dd>
+            <dt class="col-sm-5">Diária contratada</dt><dd class="col-sm-7" th:text="|R$ ${#numbers.formatDecimal(reservation.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></dd>
+            <dt class="col-sm-5">Total estimado</dt><dd class="col-sm-7" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></dd>
+        </dl>
+        <p class="text-secondary">O valor foi registrado com a reserva. Alterações futuras na diária do catálogo não modificam este total.</p>
+        <p class="small text-secondary">A listagem de reservas, o cancelamento, a retirada e a devolução serão disponibilizados nas próximas etapas do projeto.</p>
+        <div><a class="btn btn-primary" th:href="@{/equipamentos}">Voltar ao catálogo</a></div>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

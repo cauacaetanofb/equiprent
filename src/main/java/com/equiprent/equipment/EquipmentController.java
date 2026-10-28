@@ -1,6 +1,7 @@
 package com.equiprent.equipment;
 
 import com.equiprent.security.CurrentUser;
+import com.equiprent.reservation.ReservationRuleException;
 import com.equiprent.user.UserRole;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -31,7 +32,7 @@ public class EquipmentController {
 
     @InitBinder("filter")
     void bindFilter(WebDataBinder binder) {
-        binder.setAllowedFields("q", "category", "condition", "page", "size", "sort");
+        binder.setAllowedFields("q", "category", "condition", "page", "size", "sort", "startDate", "endDate");
     }
 
     @GetMapping
@@ -41,7 +42,11 @@ public class EquipmentController {
         model.addAttribute("conditions", user.getRole() == UserRole.ADMIN
                 ? List.of(EquipmentCondition.values())
                 : List.of(EquipmentCondition.OPERATIONAL, EquipmentCondition.MAINTENANCE));
-        model.addAttribute("equipmentPage", binding.hasErrors() ? Page.empty() : equipment.search(filter));
+        model.addAttribute("equipmentPage", Page.empty());
+        if (!binding.hasErrors()) {
+            try { model.addAttribute("equipmentPage", equipment.search(filter)); }
+            catch (ReservationRuleException exception) { binding.reject("period", exception.getMessage()); }
+        }
         return "equipment/list";
     }
 

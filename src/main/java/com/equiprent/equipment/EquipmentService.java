@@ -2,6 +2,7 @@ package com.equiprent.equipment;
 
 import com.equiprent.reservation.ReservationRepository;
 import com.equiprent.reservation.ReservationStatus;
+import com.equiprent.reservation.RentalPeriod;
 import com.equiprent.security.CurrentUser;
 import com.equiprent.user.UserRole;
 import jakarta.validation.Valid;
@@ -25,18 +26,23 @@ public class EquipmentService {
     private final ReservationRepository reservations;
     private final CurrentUser currentUser;
     private final Clock clock;
+    private final RentalPeriod rentalPeriod;
 
     public EquipmentService(EquipmentRepository equipment, ReservationRepository reservations,
-                            CurrentUser currentUser, Clock clock) {
+                            CurrentUser currentUser, Clock clock, RentalPeriod rentalPeriod) {
         this.equipment = equipment;
         this.reservations = reservations;
         this.currentUser = currentUser;
         this.clock = clock;
+        this.rentalPeriod = rentalPeriod;
     }
 
     @Transactional(readOnly = true)
     public Page<EquipmentSummary> search(@Valid EquipmentFilter filter) {
         var user = currentUser.requireActiveUser();
+        if (filter.getStartDate() != null || filter.getEndDate() != null) {
+            rentalPeriod.days(filter.getStartDate(), filter.getEndDate());
+        }
         var sort = switch (filter.getSort()) {
             case "priceAsc" -> Sort.by("dailyRate");
             case "priceDesc" -> Sort.by(Sort.Direction.DESC, "dailyRate");
@@ -47,6 +53,7 @@ public class EquipmentService {
         var search = "%" + filter.getQ().toLowerCase(Locale.ROOT)
                 .replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
         return equipment.search(search, filter.getCategory(), filter.getCondition(), user.getRole() == UserRole.ADMIN,
+                filter.getStartDate() != null, filter.getStartDate(), filter.getEndDate(), rentalPeriod.today(),
                 PageRequest.of(filter.getPage(), filter.getSize(), sort.and(Sort.by("id"))))
                 .map(EquipmentSummary::from);
     }

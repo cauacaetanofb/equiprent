@@ -2,6 +2,8 @@ package com.equiprent.equipment;
 
 import jakarta.validation.constraints.Size;
 import java.util.Set;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 
 public class EquipmentFilter {
 
@@ -12,6 +14,15 @@ public class EquipmentFilter {
     private int page;
     private int size = 20;
     private String sort = "name";
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate startDate;
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate endDate;
+
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
 
     public String getQ() { return q; }
     public void setQ(String q) { this.q = q == null ? "" : q.strip(); }

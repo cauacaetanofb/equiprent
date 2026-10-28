@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;
 
 import java.util.Optional;
+import java.time.LocalDate;
+import com.equiprent.reservation.AvailabilityRules;
 
 public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
@@ -26,10 +28,17 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
               and (:category is null or e.category = :category)
               and (:condition is null or e.condition = :condition)
               and (:includeRetired = true or e.condition <> com.equiprent.equipment.EquipmentCondition.RETIRED)
-            """)
+              and (:onlyAvailable = false or (
+                e.condition = com.equiprent.equipment.EquipmentCondition.OPERATIONAL
+                and not exists (select r.id from Reservation r where r.equipment = e and
+            """ + AvailabilityRules.BLOCKING_RESERVATION + "))) ")
     Page<Equipment> search(@Param("search") String search,
                            @Param("category") EquipmentCategory category,
                            @Param("condition") EquipmentCondition condition,
                            @Param("includeRetired") boolean includeRetired,
+                           @Param("onlyAvailable") boolean onlyAvailable,
+                           @Param("startDate") LocalDate startDate,
+                           @Param("endDate") LocalDate endDate,
+                           @Param("today") LocalDate today,
                            Pageable pageable);
 }

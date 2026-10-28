@@ -67,7 +67,7 @@ public class Reservation {
     protected Reservation() {
     }
 
-    // O futuro service validará disponibilidade e calculará os valores sob bloqueio.
+    // O service valida disponibilidade e calcula os valores sob bloqueio.
     public Reservation(User customer, Equipment equipment, LocalDate startDate, LocalDate endDate,
                        BigDecimal dailyRateSnapshot, BigDecimal estimatedAmount, Instant createdAt) {
         this.customer = Objects.requireNonNull(customer);

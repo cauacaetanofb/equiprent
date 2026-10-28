@@ -29,6 +29,7 @@
                 <p th:if="${equipment.condition.name() == 'OPERATIONAL'}" class="text-secondary mb-0">Unidade operacional. A disponibilidade depende do período de aluguel.</p>
                 <p th:if="${equipment.condition.name() == 'MAINTENANCE'}" class="text-secondary mb-0">Esta unidade está em manutenção e não pode receber novas reservas.</p>
                 <p th:if="${equipment.condition.name() == 'RETIRED'}" class="text-secondary mb-0">Esta unidade foi aposentada. Seu cadastro permanece para preservar o histórico.</p>
+                <a th:if="${!isAdmin and equipment.condition.name() == 'OPERATIONAL'}" th:href="@{/reservas/nova(equipmentId=${equipment.id})}" class="btn btn-primary mt-3">Consultar período e reservar</a>
             </section>
         </div>
     </div>

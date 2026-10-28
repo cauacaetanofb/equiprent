@@ -44,6 +44,15 @@
                 <label for="size" class="form-label">Itens por página</label>
                 <input th:field="*{size}" type="number" min="1" max="100" class="form-control" required>
             </div>
+            <div class="col-sm-6">
+                <label for="startDate" class="form-label">Disponível a partir de</label>
+                <input th:field="*{startDate}" type="date" max="9999-12-31" class="form-control" aria-describedby="period-help">
+            </div>
+            <div class="col-sm-6">
+                <label for="endDate" class="form-label">Até (inclusive)</label>
+                <input th:field="*{endDate}" type="date" max="9999-12-31" class="form-control" aria-describedby="period-help">
+            </div>
+            <p id="period-help" class="small text-secondary mb-0">Preencha as duas datas para buscar somente unidades disponíveis. A disponibilidade será revalidada ao confirmar a reserva.</p>
         </div>
         <div class="d-flex gap-2 mt-3">
             <button type="submit" class="btn btn-primary">Buscar</button>
@@ -53,7 +62,7 @@
     <div th:if="${equipmentPage.empty}" class="card p-4">
         <h2 class="h5">Nenhum equipamento encontrado</h2>
         <p class="text-secondary mb-0">Confira os filtros ou volte à primeira página da busca.</p>
-        <a class="mt-3" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort})}">Primeira página</a>
+        <a class="mt-3" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},startDate=${filter.startDate},endDate=${filter.endDate})}">Primeira página</a>
     </div>
     <div th:unless="${equipmentPage.empty}" class="card overflow-hidden">
         <div class="table-responsive">
@@ -61,7 +70,9 @@
                 <caption class="visually-hidden">Unidades físicas de equipamentos cadastradas</caption>
                 <thead><tr><th scope="col">Equipamento</th><th scope="col">Categoria</th><th scope="col">Diária</th><th scope="col">Condição física</th></tr></thead>
                 <tbody><tr th:each="equipment : ${equipmentPage}">
-                    <td><a th:href="@{/equipamentos/{id}(id=${equipment.id})}" th:text="${equipment.name}"></a><small class="d-block text-secondary" th:text="${equipment.assetCode}"></small></td>
+                    <td><a th:href="@{/equipamentos/{id}(id=${equipment.id})}" th:text="${equipment.name}"></a><small class="d-block text-secondary" th:text="${equipment.assetCode}"></small>
+                        <a th:if="${!isAdmin and filter.startDate != null and filter.endDate != null}" class="small" th:href="@{/reservas/nova(equipmentId=${equipment.id},startDate=${filter.startDate},endDate=${filter.endDate})}">Estimar e reservar</a>
+                    </td>
                     <td th:text="${equipment.category.label}"></td>
                     <td class="text-nowrap" th:text="|R$ ${#numbers.formatDecimal(equipment.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></td>
                     <td><span class="badge" th:classappend="${equipment.condition.name() == 'OPERATIONAL' ? 'text-bg-success' : (equipment.condition.name() == 'MAINTENANCE' ? 'text-bg-warning' : 'text-bg-secondary')}" th:text="${equipment.condition.label}"></span></td>
@@ -72,8 +83,8 @@
     <nav class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4" aria-label="Paginação dos equipamentos">
         <p class="small text-secondary mb-0" th:text="|${equipmentPage.totalElements} equipamento(s) encontrado(s)|"></p>
         <div class="d-flex gap-2">
-            <a th:if="${equipmentPage.hasPrevious()}" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},page=${equipmentPage.number - 1})}" class="btn btn-outline-secondary">Anterior</a>
-            <a th:if="${equipmentPage.hasNext()}" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},page=${equipmentPage.number + 1})}" class="btn btn-outline-secondary">Próxima</a>
+            <a th:if="${equipmentPage.hasPrevious()}" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},page=${equipmentPage.number - 1},startDate=${filter.startDate},endDate=${filter.endDate})}" class="btn btn-outline-secondary">Anterior</a>
+            <a th:if="${equipmentPage.hasNext()}" th:href="@{/equipamentos(q=${filter.q},category=${filter.category},condition=${filter.condition},size=${filter.size},sort=${filter.sort},page=${equipmentPage.number + 1},startDate=${filter.startDate},endDate=${filter.endDate})}" class="btn btn-outline-secondary">Próxima</a>
         </div>
     </nav>
 </main>
