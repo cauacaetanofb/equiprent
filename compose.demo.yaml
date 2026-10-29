@@ -1,0 +1,22 @@
+name: equiprent-demo
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: equiprent_demo
+      POSTGRES_USER: equiprent_demo
+      POSTGRES_PASSWORD: ${DEMO_DB_PASSWORD:?Execute scripts/Start-Demo.ps1 primeiro}
+    ports:
+      - "127.0.0.1:${DEMO_DB_PORT:-5440}:5432"
+    volumes:
+      - demo_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U equiprent_demo -d equiprent_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  demo_data:

@@ -10,6 +10,7 @@
 <body>
 <header th:fragment="header" class="border-bottom bg-white">
     <a class="visually-hidden-focusable p-3" href="#conteudo">Ir para o conteúdo</a>
+    <p th:if="${demoMode == true}" class="bg-warning-subtle text-dark text-center small py-2 px-3 mb-0">Demonstração local · Contas, equipamentos e reservas fictícios</p>
     <nav class="container py-4 d-flex flex-wrap align-items-center justify-content-between gap-3" aria-label="Navegação principal">
         <a class="brand text-decoration-none" th:href="@{/}" aria-label="EquipRent — página inicial">Equip<span>Rent</span></a>
         <div class="d-flex flex-wrap gap-3 align-items-center">

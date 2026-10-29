@@ -4,7 +4,7 @@
 
 Organizar a locação de equipamentos de uma pequena empresa, substituindo controles dispersos por um catálogo de unidades físicas, reservas por período e histórico de retirada e devolução. O projeto deve demonstrar fundamentos de desenvolvimento web, integridade de dados, autorização e testes em entrevistas de estágio e nível júnior.
 
-**Entrega atual:** etapas 0 a 7 implementadas: base, modelo JPA, migração V1, autenticação ADMIN/CLIENTE, clientes, catálogo, disponibilidade, estimativa, criação/cancelamento de reservas, listagens por perfil, retirada/devolução, manutenção ao devolver, atrasos e linha do tempo. Interface revisada em desktop/360 px, fluxo completo exercitado no navegador e CI com JDK 21 configurado. Suite aprovada em JDK 21 efetivo, com 269 testes e PostgreSQL, inclusive concorrência. A próxima etapa é preparar a demonstração de portfólio; a primeira execução remota do CI depende do push desta entrega.
+**Entrega atual:** etapas 0 a 8 implementadas: ciclo completo de locação, interface revisada em desktop/360 px, CI configurado e material de portfólio. Perfil `demo` com banco separado, contas fictícias, oito capturas, vídeo com legendas e roteiro de apresentação. Suite aprovada em JDK 21 efetivo, com 276 testes e PostgreSQL, inclusive concorrência. Execução remota do CI deve ser conferida após o push; hospedagem e novas funcionalidades ficam para tarefas específicas.
 
 ### Primeira versão
 
@@ -48,6 +48,8 @@ com.equiprent
     SecurityConfig, CustomUserDetailsService, CurrentUser
     ActiveUserFilter, AdminBootstrap, AccountController
     ApplicationSecurityConfiguration, NavigationAdvice
+  demo/                                    # opcional, somente no perfil demo
+    DemoDataLoader, DemoNavigationAdvice
   shared/                                  # somente quando necessário
     configuração de Clock e tratamento de erros comuns
 
@@ -406,18 +408,24 @@ Atraso atual calculado por data civil de São Paulo; devolução tardia usa a da
 
 ### Etapa 8 — Preparação do portfólio (depende da 7)
 
-- [ ] Criar dados fictícios opcionais em perfil de demonstração, sem dados pessoais reais.
-- [ ] Produzir capturas de catálogo, reserva, administração e histórico em desktop/mobile.
-- [ ] Gravar demonstração curta do fluxo e de um conflito de reservas.
-- [ ] Atualizar README com funcionalidades reais, imagens, arquitetura e limitações.
-- [ ] Documentar como executar a suite e reproduzir o teste concorrente.
-- [ ] Preparar explicação de 3–5 minutos sobre escolhas, tradeoffs e melhorias futuras.
+- [x] Criar dados fictícios opcionais em perfil de demonstração, sem dados pessoais reais.
+- [x] Produzir capturas de catálogo, reserva, administração e histórico em desktop/mobile.
+- [x] Gravar demonstração curta do fluxo e de um conflito de reservas.
+- [x] Atualizar README com funcionalidades reais, imagens, arquitetura e limitações.
+- [x] Documentar como executar a suite e reproduzir o teste concorrente.
+- [x] Preparar explicação de 3–5 minutos sobre escolhas, tradeoffs e melhorias futuras.
 
 **Conclusão:** outra pessoa consegue executar seguindo apenas o README e reproduzir a demonstração. A documentação diferencia decisões implementadas de evoluções futuras. Qualquer hospedagem/publicação exige uma tarefa posterior específica.
 
 **Testes:** instalação limpa, migrações do zero, dados de demo repetíveis, comandos conferidos e ausência de segredos em arquivos/imagens. Executar toda a suite antes de registrar a demonstração.
 
 **Aprendizado:** comunicação técnica, demonstração de evidências e apresentação do projeto em entrevistas.
+
+**Decisões implementadas:** perfil `demo` usa PostgreSQL `equiprent_demo`, Compose/volume próprios, portas 8081/5440 e cookie distinto, com bind local. `Start-Demo.ps1` gera credenciais em `.local/demo.env`, preserva esse arquivo nas próximas execuções e restaura o ambiente do PowerShell. O bootstrap normal fica fora do perfil. A carga exige banco dedicado e vazio, valida a senha fornecida e grava 3 contas, 7 unidades, 7 reservas e 12 eventos. Advisory lock serializa a carga; marcador e fixtures são atômicos. Reiniciar não duplica nem redefine datas, valores ou ações. Uma migração repetível exclusiva de `db/demo` cria o marcador; a V1 continua intacta e o perfil normal não aplica esse arquivo.
+
+**Material entregue:** README reorganizado com imagens, arquitetura, limitações e comandos; guias em `docs/DEMONSTRACAO.md`, `docs/DESENVOLVIMENTO.md`, `docs/VALIDACOES.md` e `docs/APRESENTACAO.md`. Oito PNGs (desktop/360 px), WebM de aproximadamente um minuto e legendas WebVTT em português. O vídeo registra estimativas concorrentes em sessões separadas, recusa da confirmação desatualizada, retirada e devolução. O teste simultâneo de duas transações é explicado separadamente, sem confundir vídeo com prova de corrida de threads.
+
+**Validação da entrega, consolidada em 29/10/2026:** `clean verify` com **276 testes** (14 unitário/MVC e 262 de integração), zero falhas/erros/ignorados, em Temurin 21.0.12.1. Sete testes novos cobrem consistência da carga, idempotência/preservação, inicialização concorrente, banco não vazio, senha ausente, rollback e nome de banco incorreto. Script executado com volume novo, reinício real preservando a reserva gravada no vídeo, execução fora da raiz, credenciais preservadas e variáveis restauradas. Capturas auditadas com axe e inspecionadas; vídeo reproduzido no Chrome, com quadros e legendas conferidos. Dados normais preservados. CI remoto, outros navegadores, leitores de tela e hospedagem não foram validados nesta entrega.
 
 ## 7. Decisões ainda a revisar
 
