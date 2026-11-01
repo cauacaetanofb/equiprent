@@ -8,21 +8,24 @@ Projeto de portfólio com foco em regras de negócio, autorização e consistên
 
 ![Catálogo de equipamentos com busca, filtros e condições físicas](docs/images/catalogo-desktop.png)
 
+**Marketplace em construção:** a M1 já separa empresas, administradores, equipamentos e reservas. Cada empresa administra seus próprios registros; clientes podem alugar em várias empresas. Busca pública, solicitação com aprovação e chat seguem planejados. [Guia de empresas e migração](docs/EMPRESAS.md).
+
 ## O que está implementado
 
 | CLIENTE | ADMIN |
 | --- | --- |
 | Consultar catálogo e disponibilidade por período | Cadastrar equipamentos e clientes |
 | Estimar diárias e confirmar uma reserva | Atualizar catálogo e condição física |
-| Consultar somente suas reservas e histórico | Consultar todas as reservas e seus eventos |
+| Consultar somente suas reservas e histórico | Consultar as reservas da sua empresa e seus eventos |
 | Cancelar reservas ainda não retiradas | Cancelar com motivo, registrar retirada/devolução |
 | Acompanhar situação e valores contratados | Identificar atrasos, manutenção e compromissos afetados |
 
-- Login por e-mail e sessão, senha com PBKDF2, CSRF e desativação de clientes com verificação de pendências.
+- Login por e-mail e sessão, senha com PBKDF2, CSRF e bloqueio de novos aluguéis por empresa, com verificação de pendências e preservação da conta pessoal.
 - Dias inclusivos em `America/Sao_Paulo`, dinheiro com `BigDecimal` e snapshot imutável da diária/total.
 - Bloqueio pessimista da unidade para impedir reservas sobrepostas, com reserva e evento na mesma transação.
 - Atrasos calculados pela data de negócio; devolução antecipada ou tardia preserva o valor contratado.
 - Busca, filtros, paginação, mensagens em português, foco nos erros e tabelas roláveis por teclado em telas pequenas.
+- Empresas com vínculos administrativos individuais, códigos patrimoniais únicos por empresa e migração que preserva a base anterior.
 - Perfil `demo` opcional com contas e dados fictícios, isolado do ambiente normal.
 
 ## Experimentar localmente
@@ -41,11 +44,12 @@ Abra **http://localhost:8081**. O script cria `.local/demo.env`, inicia PostgreS
 
 | Conta fictícia | Perfil |
 | --- | --- |
-| `admin@equiprent.example` | ADMIN |
+| `admin@equiprent.example` | ADMIN da Locadora Demo A |
+| `empresa.b@equiprent.example` | ADMIN da Locadora Demo B (cargas novas) |
 | `marina@equiprent.example` | CLIENTE |
 | `rafael@equiprent.example` | CLIENTE |
 
-A senha das três contas é gerada localmente na variável `DEMO_ACCOUNT_PASSWORD` do arquivo `.local/demo.env`, ignorado pelo Git:
+A senha das contas é gerada localmente na variável `DEMO_ACCOUNT_PASSWORD` do arquivo `.local/demo.env`, ignorado pelo Git:
 
 ```powershell
 notepad .\.local\demo.env
@@ -61,9 +65,17 @@ docker compose -p equiprent-demo -f compose.demo.yaml --env-file .local/demo.env
 
 Para usar seu banco de desenvolvimento em `8080`, siga o [guia de configuração com `.env`](docs/DESENVOLVIMENTO.md#configuração-e-execução-no-windows).
 
+Para experimentar a M1 com duas empresas sem apagar uma demo antiga:
+
+```powershell
+.\scripts\Start-Demo.ps1 -Instance marketplace
+```
+
+Essa instância abre em **http://localhost:8082**, com senha em `.local/demo-marketplace.env` e volume próprio. Demos antigas preservam seus dados e não recebem automaticamente a segunda empresa. [Roteiro de teste e cadastro controlado de empresas](docs/EMPRESAS.md).
+
 ## Telas e demonstração
 
-As capturas e o vídeo foram produzidos com o perfil `demo`, usando dados fictícios. O vídeo mostra uma estimativa consultada antes de outra sessão confirmar a reserva, a recusa da segunda confirmação, retirada e devolução com histórico.
+As capturas e o vídeo mostram a base anterior à M1. Foram produzidos com o perfil `demo`, usando dados fictícios. O vídeo mostra uma estimativa consultada antes de outra sessão confirmar a reserva, a recusa da segunda confirmação, retirada e devolução com histórico.
 
 | Reserva e estimativa | Administração |
 | --- | --- |
@@ -91,13 +103,13 @@ flowchart LR
     F[Flyway] --> P
 ```
 
-O código é organizado por funcionalidade: `user`, `equipment`, `reservation`, `security` e `demo`. Controllers recebem formulários com campos permitidos; services revalidam perfil, atividade e propriedade. Hibernate apenas valida o esquema; Flyway aplica migrações. `open-in-view=false` exige carregar os dados necessários antes da renderização.
+O código é organizado por funcionalidade: `company`, `user`, `equipment`, `reservation`, `security` e `demo`. Controllers recebem formulários com campos permitidos; services revalidam perfil, atividade e propriedade. Hibernate apenas valida o esquema; Flyway aplica migrações. `open-in-view=false` exige carregar os dados necessários antes da renderização.
 
 **Disponibilidade é uma consulta.** “Operacional” descreve a condição física, mas não garante que a unidade esteja livre no período. Reservas pendentes sobrepostas e uso atrasado bloqueiam novas confirmações.
 
 **A confirmação protege a decisão.** A transação bloqueia cliente → equipamento; após esperar, recarrega os dados, revalida disponibilidade e registra reserva/evento atomicamente. Retirada, devolução e cancelamento compartilham o bloqueio de equipamento → reserva. A proteção funciona entre processos, sem depender de `synchronized`.
 
-**Histórico é preservado.** Não há exclusão de registros de negócio; clientes são desativados e equipamentos aposentados. A edição da diária não muda contratos anteriores. As restrições SQL complementam os services, mas scripts externos ainda precisam respeitar o protocolo de escrita.
+**Histórico é preservado.** Não há exclusão de registros de negócio; o acesso a novos aluguéis é bloqueado por empresa e equipamentos são aposentados. A edição da diária não muda contratos anteriores. As restrições SQL complementam os services, mas scripts externos ainda precisam respeitar o protocolo de escrita.
 
 Tecnologias: Java 21, Spring Boot 4.1.2, Spring MVC/Security/Data JPA, Thymeleaf, Bean Validation, PostgreSQL 17, Flyway, Bootstrap 5.3.8, JUnit, MockMvc, Testcontainers e Maven Failsafe. Versões estão fixadas no projeto ou gerenciadas pelo parent Spring Boot.
 
@@ -109,7 +121,7 @@ Com Docker iniciado e a aplicação parada:
 .\mvnw.cmd clean verify
 ```
 
-Nesta entrega, **276 testes passaram em JDK 21 efetivo**: 14 unitário/MVC e 262 de integração. Testcontainers inicia PostgreSQL 17 descartável, sem usar `.env` ou o volume de desenvolvimento. O perfil normal continua aplicando somente a V1; o marcador da carga demo é uma migração exclusiva desse perfil.
+Nesta entrega, **296 testes passaram em JDK 21 efetivo**: 14 unitário/MVC e 282 de integração. Testcontainers inicia PostgreSQL 17 descartável, sem usar `.env` ou o volume de desenvolvimento. O perfil normal aplica V1 e V2; o marcador da carga demo é uma migração exclusiva desse perfil. Os 20 novos testes cobrem empresas, isolamento, provisionamento, concorrência e preservação da base na migração.
 
 Para reproduzir somente a disputa simultânea por períodos sobrepostos:
 
@@ -131,7 +143,7 @@ Os sete testes da demo cobrem consistência de preços/eventos/datas, idempotên
 
 ## Limites e possíveis evoluções
 
-Esta versão não inclui pagamento, multa automática, recuperação/troca de senha, cadastro público, reativação de clientes, carrinho, múltiplas empresas ou edição de datas de reservas. O cadastro de clientes é feito pelo ADMIN. Cancelar e reservar novamente mantém explícitos os novos valores e eventos.
+Esta versão não inclui pagamento, multa automática, recuperação/troca de senha, cadastro público, reativação de clientes, carrinho ou edição de datas de reservas. O cadastro de clientes ainda é feito pelo ADMIN da empresa; o cadastro pessoal público está previsto em M2. A M1 permite uma empresa por conta administrativa e cadastro de empresas por procedimento local. Cancelar e reservar novamente mantém explícitos os novos valores e eventos.
 
 A interface foi revisada em Chrome, desktop e 360 px, com teclado e auditoria axe; testes com outros navegadores e leitores de tela ainda não foram realizados. Não há implantação pública nesta entrega.
 
@@ -139,6 +151,7 @@ Evoluções possíveis: recuperação de acesso, notificações de atraso, polí
 
 ## Documentação
 
+- [Empresas: migração, cadastro local e demonstração isolada](docs/EMPRESAS.md)
 - [Demonstração: dados, execução, roteiro e reinicialização](docs/DEMONSTRACAO.md)
 - [Apresentação de 3–5 minutos e perguntas técnicas](docs/APRESENTACAO.md)
 - [Configuração do ambiente normal, permissões e comandos](docs/DESENVOLVIMENTO.md)

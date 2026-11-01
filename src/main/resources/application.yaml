@@ -24,6 +24,15 @@ server:
         same-site: lax
 
 equiprent:
+  company:
+    initial-name: ${INITIAL_COMPANY_NAME:}
+    registration:
+      enabled: false
+      code: ${COMPANY_CODE:}
+      name: ${COMPANY_NAME:}
+      admin-name: ${COMPANY_ADMIN_NAME:}
+      admin-email: ${COMPANY_ADMIN_EMAIL:}
+      admin-password: ${COMPANY_ADMIN_PASSWORD:}
   bootstrap:
     enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
     name: ${BOOTSTRAP_ADMIN_NAME:}

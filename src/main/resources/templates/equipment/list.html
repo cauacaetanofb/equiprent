@@ -72,6 +72,7 @@
                 <thead><tr><th scope="col">Equipamento</th><th scope="col">Categoria</th><th scope="col">Diária</th><th scope="col">Condição física</th></tr></thead>
                 <tbody><tr th:each="equipment : ${equipmentPage}">
                     <td><a th:href="@{/equipamentos/{id}(id=${equipment.id})}" th:text="${equipment.name}"></a><small class="d-block text-secondary" th:text="${equipment.assetCode}"></small>
+                        <small class="d-block text-secondary" th:text="${equipment.companyName}"></small>
                         <a th:if="${!isAdmin and filter.startDate != null and filter.endDate != null}" class="small" th:href="@{/reservas/nova(equipmentId=${equipment.id},startDate=${filter.startDate},endDate=${filter.endDate})}">Estimar e reservar</a>
                     </td>
                     <td th:text="${equipment.category.label}"></td>

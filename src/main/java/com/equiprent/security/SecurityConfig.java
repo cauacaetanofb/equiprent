@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.AnonymousAuthenticationFi
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository users) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository users, CurrentUser currentUser) throws Exception {
         return http
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
@@ -29,6 +29,7 @@ public class SecurityConfig {
                         .defaultSuccessUrl("/conta", true).failureUrl("/login?error").permitAll())
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout").permitAll())
                 .addFilterAfter(new ActiveUserFilter(users), AnonymousAuthenticationFilter.class)
+                .addFilterAfter(new CompanyAccessFilter(currentUser), ActiveUserFilter.class)
                 .build();
     }
 }

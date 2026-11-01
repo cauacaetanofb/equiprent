@@ -92,7 +92,7 @@ class ReservationManagementIT {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         alice = users.saveAndFlush(new User("Alice", CLIENT, "hash-privado", UserRole.CLIENTE, CREATED));
         bob = users.saveAndFlush(new User("Bob privado", OTHER, "hash-privado", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-privado", UserRole.ADMIN, CREATED));
@@ -100,6 +100,7 @@ class ReservationManagementIT {
         reserve(alice, notebook, START);
         reserve(bob, unit("CAM-002", "Câmera privada"), START.plusDays(10));
         authenticate(CLIENT);
+        com.equiprent.company.TestCompanies.linkInitial(jdbc);
     }
 
     @AfterEach void clearSecurity() { SecurityContextHolder.clearContext(); }
@@ -481,7 +482,7 @@ class ReservationManagementIT {
     }
 
     private Equipment unit(String code, String name) {
-        return equipment.saveAndFlush(new Equipment(code, name, "Descrição", EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), CREATED));
+        return equipment.saveAndFlush(new Equipment(1L, code, name, "Descrição", EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), CREATED));
     }
 
     private Reservation reserve(User customer, Equipment item, LocalDate start) {

@@ -17,14 +17,19 @@ import org.springframework.data.jpa.domain.Specification;
 public interface ReservationRepository extends JpaRepository<Reservation, Long>, JpaSpecificationExecutor<Reservation> {
 
     @Override
-    @EntityGraph(attributePaths = {"equipment", "customer"})
+    @EntityGraph(attributePaths = {"equipment.company", "customer"})
     Page<Reservation> findAll(Specification<Reservation> specification, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Reservation r where r.id = :id")
     Optional<Reservation> findByIdForUpdate(@Param("id") Long id);
 
+    @EntityGraph(attributePaths = {"equipment.company", "customer"})
     Optional<Reservation> findByIdAndCustomerId(Long id, Long customerId);
+
+    @EntityGraph(attributePaths = {"equipment.company", "customer"})
+    Optional<Reservation> findByIdAndCompanyId(Long id, Long companyId);
+    boolean existsByCustomerIdAndCompanyIdAndStatusIn(Long customerId, Long companyId, Collection<ReservationStatus> statuses);
 
     @Query("select (count(r) > 0) from Reservation r where r.equipment.id = :equipmentId and "
             + AvailabilityRules.BLOCKING_RESERVATION)

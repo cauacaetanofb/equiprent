@@ -12,7 +12,7 @@ class EquipmentTest {
     @Test
     void shouldRejectFractionOfACentInsteadOfSilentlyRounding() {
         assertThatExceptionOfType(ArithmeticException.class).isThrownBy(() ->
-                new Equipment("NB-001", "Notebook", "Descrição", EquipmentCategory.NOTEBOOK,
+                new Equipment(1L, "NB-001", "Notebook", "Descrição", EquipmentCategory.NOTEBOOK,
                         new BigDecimal("49.999"), Instant.parse("2026-10-27T12:00:00Z")));
     }
 }

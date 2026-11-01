@@ -91,12 +91,13 @@ class ReservationIT {
     void setUp() {
         SecurityContextHolder.clearContext();
         clock.now = Instant.parse("2026-11-01T12:00:00Z");
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         customer = users.saveAndFlush(new User("Cliente", CLIENT, "hash-teste", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Outro cliente", OTHER, "hash-teste", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-teste", UserRole.ADMIN, CREATED));
         unit("NB-001");
         authenticate(CLIENT);
+        com.equiprent.company.TestCompanies.linkInitial(jdbc);
     }
 
     @AfterEach void clearSecurity() { SecurityContextHolder.clearContext(); }
@@ -339,7 +340,8 @@ class ReservationIT {
             assertCounts(1);
         } else {
             assertThat(results).containsExactly("denied", "inactive");
-            assertThat(users.findById(customer.getId()).orElseThrow().isActive()).isFalse();
+            assertThat(users.findById(customer.getId()).orElseThrow().isActive()).isTrue();
+            assertThat(jdbc.queryForObject("SELECT active FROM company_customer WHERE company_id=1 AND user_id=?", Boolean.class, customer.getId())).isFalse();
             assertCounts(0);
         }
     }
@@ -431,7 +433,7 @@ class ReservationIT {
     }
 
     private Equipment unit(String code) {
-        return equipment.saveAndFlush(new Equipment(code, "Notebook", "Descrição", EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), CREATED));
+        return equipment.saveAndFlush(new Equipment(1L, code, "Notebook", "Descrição", EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), CREATED));
     }
 
     private ReservationForm form(Long id, int start, int end) {

@@ -52,7 +52,8 @@ public class EquipmentService {
         // Escapa os curingas do LIKE: buscar "%" ou "_" procura o caractere literal.
         var search = "%" + filter.getQ().toLowerCase(Locale.ROOT)
                 .replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
-        return equipment.search(search, filter.getCategory(), filter.getCondition(), user.getRole() == UserRole.ADMIN,
+        Long companyId = user.getRole() == UserRole.ADMIN ? currentUser.requireCompanyAccess().companyId() : null;
+        return equipment.search(companyId, search, filter.getCategory(), filter.getCondition(), user.getRole() == UserRole.ADMIN,
                 filter.getStartDate() != null, filter.getStartDate(), filter.getEndDate(), rentalPeriod.today(),
                 PageRequest.of(filter.getPage(), filter.getSize(), sort.and(Sort.by("id"))))
                 .map(EquipmentSummary::from);
@@ -61,7 +62,9 @@ public class EquipmentService {
     @Transactional(readOnly = true)
     public EquipmentSummary getDetails(Long id) {
         var user = currentUser.requireActiveUser();
-        var item = equipment.findById(id).orElseThrow(EquipmentNotFoundException::new);
+        var item = user.getRole() == UserRole.ADMIN
+                ? equipment.findByIdAndCompanyId(id, currentUser.requireCompanyAccess().companyId()).orElseThrow(EquipmentNotFoundException::new)
+                : equipment.findById(id).filter(e -> e.getCompany().isActive()).orElseThrow(EquipmentNotFoundException::new);
         if (item.getCondition() == EquipmentCondition.RETIRED && user.getRole() != UserRole.ADMIN) {
             throw new EquipmentNotFoundException();
         }
@@ -70,15 +73,15 @@ public class EquipmentService {
 
     @Transactional(readOnly = true)
     public EquipmentForm getEditForm(Long id) {
-        currentUser.requireAdmin();
+        var access = currentUser.requireCompanyAccess();
         return EquipmentForm.from(EquipmentSummary.from(
-                equipment.findById(id).orElseThrow(EquipmentNotFoundException::new)));
+                equipment.findByIdAndCompanyId(id, access.companyId()).orElseThrow(EquipmentNotFoundException::new)));
     }
 
     @Transactional(readOnly = true)
     public Page<AffectedReservation> getAffectedReservations(Long id, int page) {
-        currentUser.requireAdmin();
-        var item = equipment.findById(id).orElseThrow(EquipmentNotFoundException::new);
+        var access = currentUser.requireCompanyAccess();
+        var item = equipment.findByIdAndCompanyId(id, access.companyId()).orElseThrow(EquipmentNotFoundException::new);
         if (item.getCondition() != EquipmentCondition.MAINTENANCE && !reservations.existsByEquipmentIdAndStatusAndEndDateBefore(
                 id, ReservationStatus.IN_USE, rentalPeriod.today())) {
             return Page.empty();
@@ -91,11 +94,11 @@ public class EquipmentService {
 
     @Transactional
     public Long create(@Valid EquipmentForm form) {
-        currentUser.requireAdmin();
-        if (equipment.existsByAssetCode(form.getAssetCode())) {
+        var access = currentUser.requireCompanyAccess();
+        if (equipment.existsByCompanyIdAndAssetCode(access.companyId(), form.getAssetCode())) {
             throw new DuplicateAssetCodeException();
         }
-        var item = new Equipment(form.getAssetCode(), form.getName(), form.getDescription(),
+        var item = new Equipment(access.companyId(), form.getAssetCode(), form.getName(), form.getDescription(),
                 form.getCategory(), form.getDailyRate(), clock.instant());
         try {
             return equipment.saveAndFlush(item).getId();
@@ -109,8 +112,8 @@ public class EquipmentService {
 
     @Transactional(timeout = 10)
     public void update(Long id, @Valid EquipmentForm form) {
-        currentUser.requireAdmin();
-        var item = equipment.findByIdForUpdate(id).orElseThrow(EquipmentNotFoundException::new);
+        var access = currentUser.requireCompanyAccess();
+        var item = equipment.findByIdAndCompanyIdForUpdate(id, access.companyId()).orElseThrow(EquipmentNotFoundException::new);
         if (!item.getAssetCode().equals(form.getAssetCode())) {
             throw new EquipmentRuleException("O código patrimonial não pode ser alterado após o cadastro.");
         }
@@ -119,8 +122,8 @@ public class EquipmentService {
 
     @Transactional(timeout = 10)
     public void changeCondition(Long id, @Valid EquipmentConditionForm form) {
-        currentUser.requireAdmin();
-        var item = equipment.findByIdForUpdate(id).orElseThrow(EquipmentNotFoundException::new);
+        var access = currentUser.requireCompanyAccess();
+        var item = equipment.findByIdAndCompanyIdForUpdate(id, access.companyId()).orElseThrow(EquipmentNotFoundException::new);
         var target = form.getCondition();
         if (item.getCondition() == target) {
             return;

@@ -7,6 +7,7 @@
     <a th:href="@{${basePath}}">Voltar às reservas</a>
     <h1 class="h2 mt-4" th:text="|Reserva #${reservation.id}|"></h1>
     <p class="lead" th:text="|${reservation.equipmentName} · ${reservation.assetCode}|"></p>
+    <p class="text-secondary" th:text="${reservation.companyName}"></p>
     <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
     <div th:if="${operationError}" class="alert alert-danger" role="alert" tabindex="-1" autofocus th:text="${operationError}"></div>
     <div th:if="${reservation.overdue}" class="alert alert-warning" role="status">Devolução atrasada. Novas reservas desta unidade ficam bloqueadas até a devolução.</div>

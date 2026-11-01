@@ -22,7 +22,17 @@ public class Equipment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "asset_code", nullable = false, unique = true, updatable = false, length = 50)
+    @Column(name = "company_id", nullable = false, updatable = false)
+    private Long companyId;
+
+    @jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY, optional = false)
+    @jakarta.persistence.JoinColumn(name = "company_id", insertable = false, updatable = false)
+    private com.equiprent.company.Company company;
+
+    public Long getCompanyId() { return companyId; }
+    public com.equiprent.company.Company getCompany() { return company; }
+
+    @Column(name = "asset_code", nullable = false, updatable = false, length = 50)
     private String assetCode;
 
     @Column(nullable = false, length = 120)
@@ -51,8 +61,9 @@ public class Equipment {
     protected Equipment() {
     }
 
-    public Equipment(String assetCode, String name, String description,
+    public Equipment(Long companyId, String assetCode, String name, String description,
                      EquipmentCategory category, BigDecimal dailyRate, Instant createdAt) {
+        this.companyId = Objects.requireNonNull(companyId);
         this.assetCode = Objects.requireNonNull(assetCode).strip();
         this.name = Objects.requireNonNull(name).strip();
         this.description = Objects.requireNonNull(description).strip();

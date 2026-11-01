@@ -24,6 +24,9 @@ public class AccountController {
         model.addAttribute("accountName", user.getName());
         model.addAttribute("accountEmail", user.getEmail());
         model.addAttribute("accountRole", user.getRole().name());
+        if (user.getRole() == com.equiprent.user.UserRole.ADMIN) {
+            model.addAttribute("companyName", currentUser.requireCompanyAccess().companyName());
+        }
         return "security/account";
     }
 }

@@ -64,7 +64,7 @@ public class UserController {
     public String deactivate(@PathVariable Long id, RedirectAttributes redirect) {
         try {
             users.deactivateCustomer(id);
-            redirect.addFlashAttribute("success", "Cliente desativado. O histórico foi preservado.");
+            redirect.addFlashAttribute("success", "Novos aluguéis bloqueados nesta empresa. A conta e o histórico foram preservados.");
         } catch (PendingReservationsException exception) {
             redirect.addFlashAttribute("error", exception.getMessage());
         }

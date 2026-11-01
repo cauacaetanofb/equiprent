@@ -29,10 +29,12 @@ public class ReservationService {
     private final RentalPeriod period;
     private final Clock clock;
     private final EntityManager entityManager;
+    private final com.equiprent.company.CompanyPolicy companyPolicy;
 
     public ReservationService(ReservationRepository reservations, ReservationEventRepository events,
             EquipmentRepository equipment, UserRepository users, CurrentUser currentUser,
-            RentalPeriod period, Clock clock, EntityManager entityManager) {
+            RentalPeriod period, Clock clock, EntityManager entityManager, com.equiprent.company.CompanyPolicy companyPolicy) {
+        this.companyPolicy = companyPolicy;
         this.reservations = reservations;
         this.events = events;
         this.equipment = equipment;
@@ -54,9 +56,11 @@ public class ReservationService {
 
     @Transactional(readOnly = true)
     public ReservationEstimate estimate(@Valid ReservationForm form) {
-        customer();
+        var customer = customer();
         long days = period.days(form.getStartDate(), form.getEndDate());
         var item = equipment.findById(form.getEquipmentId()).orElseThrow(EquipmentNotFoundException::new);
+        companyPolicy.requireActiveCompany(item.getCompanyId());
+        companyPolicy.checkCustomer(item.getCompanyId(), customer.getId());
         checkAvailable(item, form);
         return new ReservationEstimate(item.getName(), item.getAssetCode(), days, item.getDailyRate(),
                 period.total(item.getDailyRate(), days));
@@ -65,7 +69,9 @@ public class ReservationService {
     @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 10)
     public Long create(@Valid ReservationForm form) {
         var authenticated = customer();
-        // Ordem compartilhada com desativação e manutenção: cliente -> equipamento -> reserva.
+        // Empresa (compartilhado) -> cliente -> equipamento -> reserva.
+        var initial = equipment.findById(form.getEquipmentId()).orElseThrow(EquipmentNotFoundException::new);
+        companyPolicy.requireActiveCompany(initial.getCompanyId());
         var customer = users.findByIdForUpdate(authenticated.getId()).orElseThrow(() -> new AccessDeniedException("Acesso não permitido."));
         // A consulta de autenticação já carregou o usuário no contexto JPA. Recarregar após esperar
         // o bloqueio é necessário para enxergar uma desativação confirmada pela outra transação.
@@ -75,6 +81,7 @@ public class ReservationService {
         }
         var item = equipment.findByIdForUpdate(form.getEquipmentId()).orElseThrow(EquipmentNotFoundException::new);
         entityManager.refresh(item, LockModeType.PESSIMISTIC_WRITE);
+        companyPolicy.registerCustomer(item.getCompanyId(), customer.getId());
         long days = period.days(form.getStartDate(), form.getEndDate());
         checkAvailable(item, form);
         var now = clock.instant();

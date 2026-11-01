@@ -6,7 +6,7 @@ import java.time.Clock;
 
 public record ReservationSummary(Long id, Long equipmentId, String equipmentName, String assetCode,
         String customerName, String customerEmail, LocalDate startDate, LocalDate endDate,
-        ReservationStatus status, BigDecimal dailyRate, BigDecimal total, boolean overdue, boolean returnedLate) {
+        ReservationStatus status, BigDecimal dailyRate, BigDecimal total, boolean overdue, boolean returnedLate, String companyName) {
     public static ReservationSummary from(Reservation reservation, Clock clock) {
         boolean overdue = reservation.getStatus() == ReservationStatus.IN_USE
                 && LocalDate.now(clock).isAfter(reservation.getEndDate());
@@ -15,6 +15,7 @@ public record ReservationSummary(Long id, Long equipmentId, String equipmentName
         return new ReservationSummary(reservation.getId(), reservation.getEquipment().getId(), reservation.getEquipment().getName(),
                 reservation.getEquipment().getAssetCode(), reservation.getCustomer().getName(),
                 reservation.getCustomer().getEmail(), reservation.getStartDate(), reservation.getEndDate(),
-                reservation.getStatus(), reservation.getDailyRateSnapshot(), reservation.getEstimatedAmount(), overdue, returnedLate);
+                reservation.getStatus(), reservation.getDailyRateSnapshot(), reservation.getEstimatedAmount(), overdue, returnedLate,
+                reservation.getEquipment().getCompany().getName());
     }
 }

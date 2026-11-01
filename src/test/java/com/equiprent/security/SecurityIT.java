@@ -113,6 +113,7 @@ class SecurityIT {
         bootstrap.run(null);
         customer = users.saveAndFlush(new User("Cliente de teste", CUSTOMER_EMAIL,
                 encoder.encode(CUSTOMER_PASSWORD), UserRole.CLIENTE, NOW));
+        com.equiprent.company.TestCompanies.linkInitial(jdbc);
     }
 
     @Test
@@ -293,13 +294,14 @@ class SecurityIT {
     }
 
     @Test
-    void shouldDeactivateCustomerAndRejectAdminOrMissingTargets() throws Exception {
+    void shouldBlockCustomerOnlyInCompanyAndRejectAdminOrMissingTargets() throws Exception {
         var session = login(CUSTOMER_EMAIL, CUSTOMER_PASSWORD);
         mvc.perform(post("/admin/clientes/{id}/desativar", customer.getId())
                         .with(user(ADMIN_EMAIL).roles("ADMIN")).with(csrf()))
                 .andExpect(redirectedUrl("/admin/clientes"));
-        assertThat(users.findById(customer.getId()).orElseThrow().isActive()).isFalse();
-        mvc.perform(get("/conta").session(session)).andExpect(redirectedUrl("/login?inactive"));
+        assertThat(users.findById(customer.getId()).orElseThrow().isActive()).isTrue();
+        assertThat(jdbc.queryForObject("SELECT active FROM company_customer WHERE company_id=1 AND user_id=?", Boolean.class, customer.getId())).isFalse();
+        mvc.perform(get("/conta").session(session)).andExpect(status().isOk());
         var adminId = users.findByEmail(ADMIN_EMAIL).orElseThrow().getId();
         for (var id : List.of(adminId, 999999L)) {
             mvc.perform(post("/admin/clientes/{id}/desativar", id)
@@ -334,7 +336,8 @@ class SecurityIT {
         mvc.perform(post("/admin/clientes/{id}/desativar", customer.getId())
                         .with(user(ADMIN_EMAIL).roles("ADMIN")).with(csrf()))
                 .andExpect(redirectedUrl("/admin/clientes"));
-        assertThat(users.findById(customer.getId()).orElseThrow().isActive()).isFalse();
+        assertThat(users.findById(customer.getId()).orElseThrow().isActive()).isTrue();
+        assertThat(jdbc.queryForObject("SELECT active FROM company_customer WHERE company_id=1 AND user_id=?", Boolean.class, customer.getId())).isFalse();
         assertThat(reservations.findById(reservation.getId())).isPresent();
         assertThat(events.findAllByReservationIdOrderByOccurredAtAscIdAsc(reservation.getId())).isNotEmpty();
     }
@@ -419,7 +422,7 @@ class SecurityIT {
     }
 
     private void clearData() {
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user RESTART IDENTITY");
+        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
     }
 
     private UserForm validForm() {
@@ -438,7 +441,7 @@ class SecurityIT {
     }
 
     private Reservation createReservation(String state) {
-        var item = equipment.saveAndFlush(new Equipment("NB-001", "Notebook", "Descrição",
+        var item = equipment.saveAndFlush(new Equipment(1L, "NB-001", "Notebook", "Descrição",
                 EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), NOW));
         var reservation = reservations.saveAndFlush(new Reservation(customer, item, LocalDate.of(2026, 11, 10),
                 LocalDate.of(2026, 11, 12), new BigDecimal("49.90"), new BigDecimal("149.70"), NOW));

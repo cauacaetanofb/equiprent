@@ -29,13 +29,13 @@
                     <td><span class="badge" th:classappend="${customer.active ? 'text-bg-success' : 'text-bg-secondary'}" th:text="${customer.active ? 'Ativo' : 'Inativo'}"></span></td>
                     <td>
                         <details th:if="${customer.active}">
-                            <summary class="text-danger">Desativar</summary>
-                            <p class="small mt-2 mb-2">O cliente perderá o acesso. Seu histórico será preservado.</p>
+                            <summary class="text-danger">Bloquear nesta empresa</summary>
+                            <p class="small mt-2 mb-2">O cliente não poderá fazer novos aluguéis nesta empresa. Sua conta e seu histórico continuarão acessíveis.</p>
                             <form th:action="@{/admin/clientes/{id}/desativar(id=${customer.id})}" method="post">
-                                <button class="btn btn-sm btn-outline-danger" type="submit">Confirmar desativação</button>
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Bloquear novos aluguéis</button>
                             </form>
                         </details>
-                        <span th:unless="${customer.active}" class="text-secondary">Acesso desativado</span>
+                        <span th:unless="${customer.active}" class="text-secondary">Bloqueado nesta empresa</span>
                     </td>
                 </tr>
                 </tbody>

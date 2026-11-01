@@ -77,18 +77,22 @@ public class DemoDataLoader implements ApplicationRunner {
             throw new IllegalStateException("Defina DEMO_ACCOUNT_PASSWORD com 12 a 64 caracteres para as contas fictícias.");
         }
 
+        Long initialCompany = jdbc.queryForObject("SELECT id FROM company WHERE code = 'INITIAL'", Long.class);
+        jdbc.update("UPDATE company SET name = 'Locadora Demo A' WHERE id = ?", initialCompany);
         LocalDate today = LocalDate.now(clock);
         Instant created = at(today.minusDays(30), 9);
         User admin = user("Admin Demo", "admin@equiprent.example", UserRole.ADMIN, password, created);
         User marina = user("Marina Demo", "marina@equiprent.example", UserRole.CLIENTE, password, created);
         User rafael = user("Rafael Demo", "rafael@equiprent.example", UserRole.CLIENTE, password, created);
-        Equipment notebook = item("NB-001", "Notebook para trabalho", "Notebook de 14 polegadas, 16 GB de memória e SSD. Acompanha carregador e bolsa.", EquipmentCategory.NOTEBOOK, "89.90", created);
-        Equipment camera = item("CAM-001", "Câmera para criação de conteúdo", "Câmera com lente 18–55 mm, bateria e cartão de memória. Indicada para fotos e vídeos.", EquipmentCategory.CAMERA, "120.00", created);
-        Equipment drill = item("FER-001", "Furadeira de impacto", "Furadeira com maleta e conjunto de brocas. Conferência dos acessórios na retirada e devolução.", EquipmentCategory.TOOL, "35.00", created);
-        Equipment inUse = item("NB-002", "Notebook compacto", "Unidade leve para estudos e apresentações, com carregador.", EquipmentCategory.NOTEBOOK, "69.90", created);
-        Equipment overdue = item("CAM-002", "Câmera para eventos", "Kit com lente, duas baterias e bolsa. Exemplo de unidade com devolução pendente.", EquipmentCategory.CAMERA, "95.00", created);
-        Equipment maintenance = item("FER-002", "Parafusadeira sem fio", "Kit com bateria, carregador e pontas. Unidade em revisão técnica.", EquipmentCategory.TOOL, "45.90", created);
-        Equipment retired = item("NB-003", "Notebook de geração anterior", "Unidade aposentada, preservada para consulta administrativa.", EquipmentCategory.NOTEBOOK, "39.90", created);
+        jdbc.update("INSERT INTO company_membership(user_id, company_id) VALUES (?, ?)", admin.getId(), initialCompany);
+        jdbc.update("INSERT INTO company_customer(company_id, user_id) VALUES (?, ?), (?, ?)", initialCompany, marina.getId(), initialCompany, rafael.getId());
+        Equipment notebook = item(initialCompany, "NB-001", "Notebook para trabalho", "Notebook de 14 polegadas, 16 GB de memória e SSD. Acompanha carregador e bolsa.", EquipmentCategory.NOTEBOOK, "89.90", created);
+        Equipment camera = item(initialCompany, "CAM-001", "Câmera para criação de conteúdo", "Câmera com lente 18–55 mm, bateria e cartão de memória. Indicada para fotos e vídeos.", EquipmentCategory.CAMERA, "120.00", created);
+        Equipment drill = item(initialCompany, "FER-001", "Furadeira de impacto", "Furadeira com maleta e conjunto de brocas. Conferência dos acessórios na retirada e devolução.", EquipmentCategory.TOOL, "35.00", created);
+        Equipment inUse = item(initialCompany, "NB-002", "Notebook compacto", "Unidade leve para estudos e apresentações, com carregador.", EquipmentCategory.NOTEBOOK, "69.90", created);
+        Equipment overdue = item(initialCompany, "CAM-002", "Câmera para eventos", "Kit com lente, duas baterias e bolsa. Exemplo de unidade com devolução pendente.", EquipmentCategory.CAMERA, "95.00", created);
+        Equipment maintenance = item(initialCompany, "FER-002", "Parafusadeira sem fio", "Kit com bateria, carregador e pontas. Unidade em revisão técnica.", EquipmentCategory.TOOL, "45.90", created);
+        Equipment retired = item(initialCompany, "NB-003", "Notebook de geração anterior", "Unidade aposentada, preservada para consulta administrativa.", EquipmentCategory.NOTEBOOK, "39.90", created);
         maintenance.changeCondition(EquipmentCondition.MAINTENANCE, at(today.minusDays(1), 10));
         retired.changeCondition(EquipmentCondition.RETIRED, at(today.minusDays(5), 10));
 
@@ -109,18 +113,24 @@ public class DemoDataLoader implements ApplicationRunner {
         cancelled.cancel(cancelledAt);
         events.save(new ReservationEvent(cancelled, rafael, ReservationStatus.RESERVED, ReservationStatus.CANCELLED,
                 cancelledAt, "Mudança de agenda do cliente fictício."));
+        Long secondCompany = jdbc.queryForObject("INSERT INTO company(code, name) VALUES ('DEMO_B', 'Locadora Demo B') RETURNING id", Long.class);
+        User secondAdmin = user("Admin Demo B", "empresa.b@equiprent.example", UserRole.ADMIN, password, created);
+        jdbc.update("INSERT INTO company_membership(user_id, company_id) VALUES (?, ?)", secondAdmin.getId(), secondCompany);
+        jdbc.update("INSERT INTO company_customer(company_id, user_id) VALUES (?, ?)", secondCompany, marina.getId());
+        Equipment otherNotebook = item(secondCompany, "NB-001", "Notebook da Locadora B", "Outra unidade física, pertencente a outra empresa.", EquipmentCategory.NOTEBOOK, "59.90", created);
+        reserve(marina, otherNotebook, today.plusDays(1), today.plusDays(2), booked);
         reservations.flush();
         jdbc.update("INSERT INTO demo_seed (id, seeded_at) VALUES (1, ?)", java.sql.Timestamp.from(clock.instant()));
-        log.info("Demonstração preparada: três contas fictícias, sete equipamentos e sete reservas com histórico.");
+        log.info("Demonstração preparada: duas empresas, quatro contas fictícias, oito equipamentos e oito reservas com histórico.");
     }
 
     private User user(String name, String email, UserRole role, String password, Instant created) {
-        return users.save(new User(name, email, encoder.encode(password), role, created));
+        return users.saveAndFlush(new User(name, email, encoder.encode(password), role, created));
     }
 
-    private Equipment item(String code, String name, String description, EquipmentCategory category,
+    private Equipment item(Long companyId, String code, String name, String description, EquipmentCategory category,
                            String rate, Instant created) {
-        return equipment.save(new Equipment(code, name, description, category, new BigDecimal(rate), created));
+        return equipment.save(new Equipment(companyId, code, name, description, category, new BigDecimal(rate), created));
     }
 
     private Reservation reserve(User customer, Equipment item, LocalDate start, LocalDate end, Instant created) {

@@ -48,6 +48,7 @@ public class AdminBootstrap implements ApplicationRunner {
             return;
         }
         // Serializa o primeiro cadastro mesmo se duas instâncias iniciarem juntas.
+        jdbc.execute("LOCK TABLE company IN SHARE ROW EXCLUSIVE MODE");
         jdbc.execute("LOCK TABLE app_user IN SHARE ROW EXCLUSIVE MODE");
         if (users.existsByRole(UserRole.ADMIN)) {
             log.info("Bootstrap ignorado: já existe administrador. Nenhuma credencial foi alterada.");
@@ -64,8 +65,9 @@ public class AdminBootstrap implements ApplicationRunner {
         if (users.existsByEmail(form.getEmail())) {
             throw new IllegalStateException("Bootstrap não pode promover um cliente existente. Use um e-mail exclusivo.");
         }
-        users.saveAndFlush(new User(form.getName(), form.getEmail(), encoder.encode(form.getPassword()),
+        var admin = users.saveAndFlush(new User(form.getName(), form.getEmail(), encoder.encode(form.getPassword()),
                 UserRole.ADMIN, clock.instant()));
+        jdbc.update("INSERT INTO company_membership(user_id, company_id) SELECT ?, id FROM company WHERE code = 'INITIAL'", admin.getId());
         log.info("Primeiro administrador criado. Desabilite o bootstrap e remova sua senha do ambiente.");
     }
 }

@@ -93,10 +93,10 @@ class PersistenceIT {
     @BeforeEach
     void setUp() {
         // Seguro aqui: o datasource aponta exclusivamente para o contêiner descartável.
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user RESTART IDENTITY");
+        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
         customer = users.saveAndFlush(new User("Cliente de teste", " Cliente@Example.Test ",
                 TEST_HASH, UserRole.CLIENTE, CREATED_AT));
-        item = equipment.saveAndFlush(new Equipment("NB-001", "Notebook", "Notebook para locação",
+        item = equipment.saveAndFlush(new Equipment(1L, "NB-001", "Notebook", "Notebook para locação",
                 EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), CREATED_AT));
         reservation = reservations.saveAndFlush(newReservation());
         events.save(new ReservationEvent(reservation, customer, null, ReservationStatus.RESERVED,
@@ -105,14 +105,14 @@ class PersistenceIT {
 
     @Test
     void shouldMigrateEmptyDatabaseAndStartHttpServer() throws Exception {
-        assertThat(flyway.info().applied()).hasSize(1);
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+        assertThat(flyway.info().applied()).hasSize(2);
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("2");
         assertThat(flyway.info().pending()).isEmpty();
         assertThat(jdbc.queryForList("""
                 SELECT table_name FROM information_schema.tables
                 WHERE table_schema = 'public' AND table_name <> 'flyway_schema_history'
                 """, String.class)).containsExactlyInAnyOrder(
-                "app_user", "equipment", "reservation", "reservation_event");
+                "app_user", "equipment", "reservation", "reservation_event", "company", "company_membership", "company_customer");
 
         try (HttpClient client = HttpClient.newHttpClient()) {
             var request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/"))
@@ -135,12 +135,12 @@ class PersistenceIT {
                         "--spring.jpa.hibernate.ddl-auto=validate")) {
             assertThat(restarted.getBean(EntityManagerFactory.class).isOpen()).isTrue();
             var restartedFlyway = restarted.getBean(Flyway.class);
-            assertThat(restartedFlyway.info().applied()).hasSize(1);
+            assertThat(restartedFlyway.info().applied()).hasSize(2);
             assertThat(restartedFlyway.migrate().migrationsExecuted).isZero();
             assertThat(restarted.getBean(ReservationRepository.class).findById(reservation.getId()))
                     .isPresent();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Long.class))
-                    .isEqualTo(1L);
+                    .isEqualTo(2L);
         }
     }
 
@@ -174,7 +174,7 @@ class PersistenceIT {
             assertThat(history.getFirst().getOccurredAt()).isEqualTo(CREATED_AT);
         });
         assertThat(users.findByEmail("cliente@example.test")).isPresent();
-        assertThat(equipment.findByAssetCode("NB-001")).isPresent();
+        assertThat(equipment.findByCompanyIdAndAssetCode(1L, "NB-001")).isPresent();
     }
 
     @Test
@@ -198,7 +198,7 @@ class PersistenceIT {
     @Test
     void shouldRejectDuplicateAssetCode() {
         assertThatExceptionOfType(DataIntegrityViolationException.class).isThrownBy(() ->
-                equipment.saveAndFlush(new Equipment("NB-001", "Outro notebook", "Descrição",
+                equipment.saveAndFlush(new Equipment(1L, "NB-001", "Outro notebook", "Descrição",
                         EquipmentCategory.NOTEBOOK, new BigDecimal("50.00"), CREATED_AT)));
         assertThat(equipment.count()).isEqualTo(1L);
     }

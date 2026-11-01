@@ -54,10 +54,12 @@ public class ReservationManagementService {
     @Transactional(readOnly = true)
     public Page<ReservationSummary> search(@Valid ReservationFilter filter, boolean administrative) {
         var user = actor(administrative);
+        Long companyId = administrative ? currentUser.requireCompanyAccess().companyId() : null;
         filter.validatePeriod();
         Specification<Reservation> criteria = (root, query, builder) -> {
             var predicates = new ArrayList<Predicate>();
             // O escopo do proprietário nunca vem do formulário e é aplicado antes da paginação/contagem.
+            if (administrative) predicates.add(builder.equal(root.get("companyId"), companyId));
             if (!administrative) predicates.add(builder.equal(root.get("customer").get("id"), user.getId()));
             if (!filter.getQ().isBlank()) {
                 predicates.add(builder.or(builder.like(builder.lower(root.get("equipment").get("name")), like(filter.getQ()), '!'),
@@ -90,7 +92,7 @@ public class ReservationManagementService {
     }
 
     private Reservation accessible(Long id, User actor, boolean administrative) {
-        return (administrative ? reservations.findById(id) : reservations.findByIdAndCustomerId(id, actor.getId()))
+        return (administrative ? reservations.findByIdAndCompanyId(id, currentUser.requireCompanyAccess().companyId()) : reservations.findByIdAndCustomerId(id, actor.getId()))
                 .orElseThrow(ReservationNotFoundException::new);
     }
 

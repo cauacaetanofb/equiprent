@@ -6,7 +6,7 @@
 <main id="conteudo" tabindex="-1" class="container py-5">
     <a th:href="@{/equipamentos}">Voltar para equipamentos</a>
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 mb-4">
-        <div><p class="eyebrow text-secondary" th:text="${equipment.assetCode}"></p><h1 class="h2 mb-0" th:text="${equipment.name}"></h1></div>
+        <div><p class="eyebrow text-secondary" th:text="${equipment.assetCode}"></p><h1 class="h2 mb-0" th:text="${equipment.name}"></h1><p class="text-secondary mt-2 mb-0" th:text="${equipment.companyName}"></p></div>
         <a th:if="${isAdmin}" th:href="@{/admin/equipamentos/{id}/editar(id=${equipment.id})}" class="btn btn-outline-primary">Editar equipamento</a>
     </div>
     <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>

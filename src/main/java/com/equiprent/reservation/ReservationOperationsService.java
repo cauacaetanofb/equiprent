@@ -33,8 +33,8 @@ public class ReservationOperationsService {
         this.clock = clock;
     }
 
-    private Reservation lock(Long id) {
-        var initial = reservations.findById(id).orElseThrow(ReservationNotFoundException::new);
+    private Reservation lock(Long id, Long companyId) {
+        var initial = reservations.findByIdAndCompanyId(id, companyId).orElseThrow(ReservationNotFoundException::new);
         // Mesma ordem usada por cancelamento, manutenção e criação: equipamento -> reserva.
         var item = equipment.findByIdForUpdate(initial.getEquipment().getId()).orElseThrow(ReservationNotFoundException::new);
         entityManager.refresh(item, LockModeType.PESSIMISTIC_WRITE);
@@ -45,8 +45,9 @@ public class ReservationOperationsService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 10)
     public void pickUp(Long id) {
-        var actor = currentUser.requireAdmin();
-        var reservation = lock(id);
+        var access = currentUser.requireCompanyAccess();
+        var actor = access.actor();
+        var reservation = lock(id, access.companyId());
         if (reservation.getStatus() != ReservationStatus.RESERVED) {
             throw new ReservationRuleException("Somente reservas no estado Reservada permitem retirada.");
         }
@@ -69,8 +70,9 @@ public class ReservationOperationsService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 10)
     public void returnEquipment(Long id, @Valid ReturnForm form) {
-        var actor = currentUser.requireAdmin();
-        var reservation = lock(id);
+        var access = currentUser.requireCompanyAccess();
+        var actor = access.actor();
+        var reservation = lock(id, access.companyId());
         var now = clock.instant();
         reservation.returnEquipment(now);
         var condition = form.getMaintenance() ? EquipmentCondition.MAINTENANCE : EquipmentCondition.OPERATIONAL;

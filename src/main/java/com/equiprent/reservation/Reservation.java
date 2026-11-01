@@ -28,6 +28,11 @@ public class Reservation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "company_id", nullable = false, updatable = false)
+    private Long companyId;
+
+    public Long getCompanyId() { return companyId; }
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)
     private User customer;
@@ -72,6 +77,7 @@ public class Reservation {
                        BigDecimal dailyRateSnapshot, BigDecimal estimatedAmount, Instant createdAt) {
         this.customer = Objects.requireNonNull(customer);
         this.equipment = Objects.requireNonNull(equipment);
+        this.companyId = equipment.getCompanyId();
         this.startDate = Objects.requireNonNull(startDate);
         this.endDate = Objects.requireNonNull(endDate);
         this.status = ReservationStatus.RESERVED;

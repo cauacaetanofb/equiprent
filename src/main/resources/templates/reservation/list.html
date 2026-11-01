@@ -65,7 +65,7 @@
             <thead><tr><th scope="col">Reserva</th><th scope="col">Equipamento</th><th th:if="${administrative}" scope="col">Cliente</th><th scope="col">Período</th><th scope="col">Situação</th><th scope="col">Total estimado</th></tr></thead>
             <tbody><tr th:each="reservation : ${reservationPage}">
                 <td><a th:href="@{${basePath + '/' + reservation.id}}" th:text="|#${reservation.id}|"></a></td>
-                <td><span th:text="${reservation.equipmentName}"></span><small class="d-block text-secondary" th:text="${reservation.assetCode}"></small></td>
+                <td><span th:text="${reservation.equipmentName}"></span><small class="d-block text-secondary" th:text="${reservation.assetCode}"></small><small class="d-block text-secondary" th:text="${reservation.companyName}"></small></td>
                 <td th:if="${administrative}"><span th:text="${reservation.customerName}"></span><small class="d-block text-secondary text-break" th:text="${reservation.customerEmail}"></small></td>
                 <td><span class="text-nowrap" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></span><span class="d-block text-nowrap" th:text="|até ${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}|"></span></td>
                 <td><span th:text="${reservation.status.label}"></span>

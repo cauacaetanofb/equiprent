@@ -2,6 +2,18 @@
 
 Registros por etapa. Pendências históricas podem ter sido resolvidas em etapas posteriores.
 
+## Validação da M1 — empresas e permissões — 01/11/2026
+
+- `clean verify` aprovado com Temurin 21.0.12.1: **296 testes** (14 unitários/MVC e 282 de integração), zero falhas, erros ou ignorados. Log local em `.local/m1-final-verify.log`.
+- `CompanyIT`: 19 casos novos de isolamento de listagens/contagens/filtros, leitura e escrita por ID, campos adulterados, vínculos/empresas/contas inativos, códigos repetidos entre empresas, coerência entre equipamento e reserva, bloqueio comercial local, cliente compartilhado, retirada/devolução, provisionamento atômico/concorrente e bloqueio de desativação durante escrita administrativa.
+- `CompanyMigrationIT`: banco PostgreSQL real com V1 e dados anteriores, aplicação da V2 e segunda migração sem reaplicação. Conferidos IDs, senhas, atividade, datas, preços históricos, estados e eventos preservados; administradores e clientes associados à Empresa inicial.
+- `Register-Company.ps1` executado de ponta a ponta em um banco descartável e fora da raiz do projeto. Confirmados empresa, administrador, vínculo e restauração do ambiente/diretório. Senha fornecida somente no processo, sem linha de comando ou impressão.
+- `Start-Demo.ps1 -Instance m1-check -PrepareOnly` criou projeto/volume e credenciais próprios. O JAR verificado foi iniciado no perfil demo sobre esse banco isolado; carga nova com duas empresas e quatro contas. Banco normal e demo anterior não foram utilizados nesses testes.
+- Chrome real via Playwright: contas dos dois administradores e da cliente, catálogo e reservas por empresa, bloqueio 404 de acesso cruzado, cadastro de equipamento, reserva, retirada, devolução e histórico. Conferida a lista de clientes da empresa B sem o cliente exclusivo da A.
+- Doze verificações de tela (seis páginas × 1366/360 px), sem overflow do documento e sem violações detectadas por axe nas regras WCAG 2/2.1 A/AA selecionadas. Capturas locais de catálogo móvel e histórico desktop inspecionadas. Senha ausente do HTML. Relatório: `.local/m1-browser-report.json`; não substitui avaliação completa de acessibilidade.
+- A V1 permanece intacta. Resultados históricos abaixo continuam documentando suas respectivas versões; apenas os comandos e capacidades atuais devem ser consultados no [guia da M1](EMPRESAS.md).
+- Pendentes: execução remota no GitHub Actions, outros navegadores/leitores de tela e hospedagem. M2 a M5 aguardam etapas próprias; a M1 não implementa busca pública, aprovação de solicitação ou chat.
+
 ## Validação da etapa 8 — entrega consolidada em 29/10/2026
 
 - `clean verify` executado com **Temurin 21.0.12.1**: **276 testes**, 14 unitário/MVC e 262 de integração, zero falhas, erros ou ignorados. A execução completa precedeu as gravações.

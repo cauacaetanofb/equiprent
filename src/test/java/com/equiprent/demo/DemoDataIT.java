@@ -63,13 +63,14 @@ class DemoDataIT {
 
     @BeforeEach
     void emptyDisposableDatabase() {
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, demo_seed RESTART IDENTITY");
+        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer, demo_seed RESTART IDENTITY");
+        jdbc.update("DELETE FROM company WHERE code <> 'INITIAL'");
     }
 
     @Test
     void shouldSeedConsistentFictionalAccountsDatesPricesAndHistory() {
         loader.run(null);
-        assertCounts(3, 7, 7, 12, 1);
+        assertCounts(4, 8, 8, 13, 1);
         assertThat(context.getBeansOfType(AdminBootstrap.class)).isEmpty();
         assertThat(context.getEnvironment().getProperty("server.servlet.session.cookie.name"))
                 .isEqualTo("EQUIPRENT_DEMO_SESSION");
@@ -78,7 +79,7 @@ class DemoDataIT {
             assertThat(user.getEmail()).endsWith("@equiprent.example");
             assertThat(encoder.matches(PASSWORD, user.getPasswordHash())).isTrue();
         });
-        assertThat(accounts.stream().map(User::getPasswordHash).distinct()).hasSize(3);
+        assertThat(accounts.stream().map(User::getPasswordHash).distinct()).hasSize(4);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM reservation WHERE estimated_amount <> daily_rate_snapshot * (end_date-start_date+1)", Integer.class)).isZero();
         assertThat(jdbc.queryForObject("""
                 SELECT count(*) FROM reservation r WHERE r.status <>
@@ -97,14 +98,14 @@ class DemoDataIT {
         var before = jdbc.queryForList("SELECT * FROM app_user ORDER BY id");
         var dates = jdbc.queryForList("SELECT start_date,end_date FROM reservation ORDER BY id");
         var marker = jdbc.queryForList("SELECT * FROM demo_seed");
-        jdbc.update("UPDATE equipment SET name='Nome editado durante a demo' WHERE asset_code='NB-001'");
+        jdbc.update("UPDATE equipment SET name='Nome editado durante a demo' WHERE company_id=1 AND asset_code='NB-001'");
         loader.run(null);
         loader.run(null);
-        assertCounts(3, 7, 7, 12, 1);
+        assertCounts(4, 8, 8, 13, 1);
         assertThat(jdbc.queryForList("SELECT * FROM app_user ORDER BY id")).isEqualTo(before);
         assertThat(jdbc.queryForList("SELECT start_date,end_date FROM reservation ORDER BY id")).isEqualTo(dates);
         assertThat(jdbc.queryForList("SELECT * FROM demo_seed")).isEqualTo(marker);
-        assertThat(jdbc.queryForObject("SELECT name FROM equipment WHERE asset_code='NB-001'", String.class))
+        assertThat(jdbc.queryForObject("SELECT name FROM equipment WHERE company_id=1 AND asset_code='NB-001'", String.class))
                 .isEqualTo("Nome editado durante a demo");
     }
 
@@ -117,7 +118,7 @@ class DemoDataIT {
             assertThat(first.get(30, TimeUnit.SECONDS)).isTrue();
             assertThat(second.get(30, TimeUnit.SECONDS)).isTrue();
         }
-        assertCounts(3, 7, 7, 12, 1);
+        assertCounts(4, 8, 8, 13, 1);
     }
 
     @Test

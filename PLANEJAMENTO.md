@@ -8,7 +8,9 @@ Evoluir o EquipRent para um marketplace de aluguel de equipamentos: o cliente pe
 
 **Direção aprovada em 01/11/2026:** planejamento do marketplace, com solicitação sem bloqueio de disponibilidade, aprovação pela empresa, concordância do cliente com mudanças de preço e chat vinculado à solicitação. Esta revisão altera somente este documento. A implementação de código será apresentada para aprovação antes de cada etapa; a publicação online permanece adiada.
 
-**Como ler este documento:** as seções 2 a 6 registram a arquitetura, as regras e as entregas da base existente. As seções 7 a 9 descrevem o destino planejado, ainda não implementado, e identificam decisões que precisam de revisão. Em especial, o ADMIN global e a confirmação direta pelo cliente pertencem ao comportamento atual e serão substituídos no fluxo do marketplace.
+**M1 implementada em 01/11/2026:** empresas, vínculos administrativos, isolamento de equipamentos/reservas/clientes, bloqueio comercial por empresa e provisionamento local. Migração V2 preserva os registros anteriores. Suite completa aprovada com 296 testes em JDK 21/PostgreSQL. Busca pública, aprovação e chat continuam pendentes. [Operação e testes da M1](docs/EMPRESAS.md).
+
+**Como ler este documento:** as seções 2 a 6 registram a arquitetura, as regras e as entregas da base existente. As seções 7 a 9 descrevem a evolução para marketplace e registram o estado de cada etapa. A M1 substitui o acesso administrativo global pelo vínculo de empresa; a confirmação direta pelo cliente permanece até M3.
 
 ### Base implementada — etapas 0 a 8
 
@@ -433,7 +435,7 @@ Atraso atual calculado por data civil de São Paulo; devolução tardia usa a da
 
 ## 7. Marketplace — fluxo e modelo planejados
 
-**Situação:** fluxo aprovado para planejamento em 01/11/2026; nenhuma funcionalidade desta seção foi implementada. Nomes de novas entidades e estados abaixo são propostas para orientar as próximas etapas, não contratos de banco já existentes.
+**Situação:** fluxo aprovado em 01/11/2026. M1 implementa empresas e permissões; jornada pública, novos estados, propostas e chat continuam planejados. Company é uma entidade JPA; os vínculos administrativos e comerciais são tabelas acessadas por JDBC. Nomes de entidades e estados das etapas seguintes ainda são propostas.
 
 ### 7.1. Jornada do cliente e da empresa
 
@@ -532,16 +534,20 @@ Salvar mensagens não confirma reservas nem altera datas/preços automaticamente
 
 ## 8. Etapas propostas para o marketplace
 
-**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. As etapas abaixo permanecem pendentes. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
+**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. M1 foi aprovada e implementada; M2 a M5 continuam pendentes. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
 
 ### M1 — Empresas e permissões
 
-- [ ] Detalhar e apresentar para aprovação o modelo de empresa/vínculo, a adaptação dos papéis e as migrações de dados existentes.
-- [ ] Vincular equipamentos e reservas à empresa, restringindo serviços, consultas e administração ao escopo autorizado.
-- [ ] Adaptar gestão de contas e bootstrap para impedir privilégios globais de administradores de empresa.
-- [ ] Cobrir migração, constraints, relações e tentativas de acesso/alteração entre empresas.
+- [x] Detalhar e apresentar para aprovação o modelo de empresa/vínculo, a adaptação dos papéis e as migrações de dados existentes.
+- [x] Vincular equipamentos e reservas à empresa, restringindo serviços, consultas e administração ao escopo autorizado.
+- [x] Adaptar gestão de contas e bootstrap para impedir privilégios globais de administradores de empresa.
+- [x] Cobrir migração, constraints, relações e tentativas de acesso/alteração entre empresas.
 
 **Critério de conclusão:** empresa A não lê nem modifica dados privados de B, inclusive por ID, filtros, contagens ou formulários adulterados. O fluxo existente funciona dentro da empresa correta. Instalação limpa e migração da base anterior preservam os históricos e valores.
+
+**Entrega em 01/11/2026:** V2 cria Empresa inicial e vínculos preservando contas, valores e histórico. Cada administrador pertence a uma empresa; seu papel global ADMIN apenas abre a área administrativa, e o vínculo ativo define o escopo real. CompanyPolicy revalida empresa/vínculo/conta e usa bloqueios compartilhados durante escritas. CompanySetup e Register-Company.ps1 cadastram empresas localmente, sem servidor HTTP ou promoção de contas existentes. INITIAL_COMPANY_NAME configura o nome inicial. Bloqueio de cliente fica em company_customer e afeta somente novos aluguéis naquela empresa. Retirada, devolução e consultas administrativas são restritas à empresa; cliente mantém seu histórico entre empresas.
+
+**Validação:** clean verify aprovado com 296 testes (14 unitários/MVC e 282 de integração), incluindo 19 casos novos de empresa e um de migração real V1 → V2. Demonstração nova contém duas empresas; instâncias nomeadas preservam a demo anterior. CI remoto e publicação não foram executados. Consulte docs/EMPRESAS.md e docs/VALIDACOES.md para comandos e evidências adicionais.
 
 ### M2 — Busca pública entre empresas e acesso do cliente (depende de M1)
 
@@ -587,10 +593,10 @@ O fluxo central já foi aprovado. Os pontos abaixo são propostas ou perguntas p
 
 | Decisão | Proposta ou situação atual | Momento da revisão |
 | --- | --- | --- |
-| Entrada de empresas | Definir cadastro controlado ou solicitação pública sujeita a aprovação; não criar administrador global implicitamente. | Antes de M1 |
-| Vínculos administrativos | Contas individuais; definir quem convida/remove administradores e se uma pessoa administra várias empresas. | Antes de M1 |
-| Migração dos dados atuais | Uma empresa inicial identificada pelo proprietário, sem apagar registros ou inventar novos aceites. | Antes de M1 |
-| Desativação de empresa/vínculo | Impedir novas ações indevidas e definir quem regulariza contratos pendentes, preservando histórico e bloqueios existentes. | Antes de M1 |
+| Entrada de empresas | M1: provisionamento local controlado cria empresa e primeiro administrador; não há cadastro público de empresas. | Implementado em M1 |
+| Vínculos administrativos | M1: conta individual vinculada a uma empresa. Convites, remoção e gestão de várias empresas pela mesma conta ficam para revisão futura. | Base implementada em M1 |
+| Migração dos dados atuais | Empresa inicial recebe os dados antigos; nome configurável por INITIAL_COMPANY_NAME. V1 preservada e V2 testada com dados anteriores. | Implementado em M1 |
+| Desativação de empresa/vínculo | M1 revalida atividade e preserva contratos; não oferece tela para essas alterações. Definir operação/regularização antes de criar tal interface. | Verificações implementadas; gestão futura |
 | Cadastro e recuperação de acesso | Proposta de cadastro público de cliente; escolher confirmação de contato e fluxo de recuperação, sem senha definida pela empresa. | Antes de M2; recuperação antes de uso real |
 | Localização e retirada | Proposta de cidade/UF na busca; definir endereço público, retirada presencial, entrega e área atendida. | Antes de M2 |
 | Composição do preço | Proposta de diária negociada e total por dias inclusivos; taxas, caução e descontos separados não estão definidos. | Antes de M3 |

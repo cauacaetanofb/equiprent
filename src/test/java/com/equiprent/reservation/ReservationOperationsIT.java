@@ -89,13 +89,14 @@ class ReservationOperationsIT {
 
     @BeforeEach void setUp() {
         SecurityContextHolder.clearContext(); clock.now = NOW;
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         customer = users.saveAndFlush(new User("Cliente", CLIENT, "hash-teste", UserRole.CLIENTE, CREATED));
         other = users.saveAndFlush(new User("Outro cliente", OTHER, "hash-teste", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-teste", UserRole.ADMIN, CREATED));
-        item = equipment.saveAndFlush(new Equipment("NB-001", "Notebook", "Descrição", EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), CREATED));
+        item = equipment.saveAndFlush(new Equipment(1L, "NB-001", "Notebook", "Descrição", EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), CREATED));
         reserve(customer, START);
         authenticate(ADMIN);
+        com.equiprent.company.TestCompanies.linkInitial(jdbc);
     }
     @AfterEach void clearSecurity() { SecurityContextHolder.clearContext(); }
 
@@ -242,7 +243,7 @@ class ReservationOperationsIT {
 
     @Test void shouldFilterOverdueWithOwnershipCountsPaginationAndEscapedParameters() throws Exception {
         operations.pickUp(1L);
-        var anotherItem = equipment.saveAndFlush(new Equipment("NB-002", "Outro", "Descrição", EquipmentCategory.NOTEBOOK, new BigDecimal("10"), CREATED));
+        var anotherItem = equipment.saveAndFlush(new Equipment(1L, "NB-002", "Outro", "Descrição", EquipmentCategory.NOTEBOOK, new BigDecimal("10"), CREATED));
         var another = reservations.saveAndFlush(new Reservation(other, anotherItem, START, START,
                 new BigDecimal("10"), new BigDecimal("10"), CREATED));
         events.save(new ReservationEvent(another, other, null, ReservationStatus.RESERVED, CREATED, null));

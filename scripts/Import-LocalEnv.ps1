@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $requiredKeys = @('DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USERNAME', 'DB_PASSWORD', 'SERVER_PORT')
-$optionalKeys = @('BOOTSTRAP_ADMIN_ENABLED', 'BOOTSTRAP_ADMIN_NAME', 'BOOTSTRAP_ADMIN_EMAIL', 'BOOTSTRAP_ADMIN_PASSWORD')
+$optionalKeys = @('INITIAL_COMPANY_NAME', 'BOOTSTRAP_ADMIN_ENABLED', 'BOOTSTRAP_ADMIN_NAME', 'BOOTSTRAP_ADMIN_EMAIL', 'BOOTSTRAP_ADMIN_PASSWORD')
 $allowedKeys = $requiredKeys + $optionalKeys
 $values = @{}
 

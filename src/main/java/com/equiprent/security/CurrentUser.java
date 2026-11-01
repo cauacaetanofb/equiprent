@@ -13,8 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class CurrentUser {
 
     private final UserRepository users;
+    private final com.equiprent.company.CompanyPolicy companyPolicy;
 
-    public CurrentUser(UserRepository users) {
+    public CurrentUser(UserRepository users, com.equiprent.company.CompanyPolicy companyPolicy) {
+        this.companyPolicy = companyPolicy;
         this.users = users;
     }
 
@@ -32,10 +34,15 @@ public class CurrentUser {
 
     @Transactional(readOnly = true)
     public User requireAdmin() {
+        return requireCompanyAccess().actor();
+    }
+
+    @Transactional(readOnly = true)
+    public com.equiprent.company.CompanyAccess requireCompanyAccess() {
         var user = requireActiveUser();
         if (user.getRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Acesso não permitido.");
         }
-        return user;
+        return companyPolicy.admin(user);
     }
 }

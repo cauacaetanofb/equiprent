@@ -82,11 +82,12 @@ class EquipmentIT {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-ficticio", UserRole.ADMIN, CREATED));
         customer = users.saveAndFlush(new User("Cliente privado", CLIENT, "hash-ficticio", UserRole.CLIENTE, CREATED));
-        item = equipment.saveAndFlush(new Equipment("NB-001", "Notebook básico", "Descrição da unidade",
+        item = equipment.saveAndFlush(new Equipment(1L, "NB-001", "Notebook básico", "Descrição da unidade",
                 EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), CREATED));
+        com.equiprent.company.TestCompanies.linkInitial(jdbc);
     }
 
     @AfterEach
@@ -285,7 +286,7 @@ class EquipmentIT {
 
     @Test
     void shouldCombineCaseInsensitiveSearchCategoryAndCondition() throws Exception {
-        equipment.saveAndFlush(new Equipment("NB-002", "Notebook profissional", "Descrição",
+        equipment.saveAndFlush(new Equipment(1L, "NB-002", "Notebook profissional", "Descrição",
                 EquipmentCategory.NOTEBOOK, new BigDecimal("80"), CREATED));
         mvc.perform(conditionPost("MAINTENANCE"));
         var page = catalog(get("/equipamentos").param("q", "NOTEBOOK").param("category", "NOTEBOOK")
@@ -300,7 +301,7 @@ class EquipmentIT {
     @ParameterizedTest
     @ValueSource(strings = {"%", "_", "!"})
     void shouldTreatLikeWildcardsAsLiteralCharacters(String character) throws Exception {
-        equipment.saveAndFlush(new Equipment("LITERAL" + character, "Especial", "Descrição",
+        equipment.saveAndFlush(new Equipment(1L, "LITERAL" + character, "Especial", "Descrição",
                 EquipmentCategory.OTHER, new BigDecimal("1"), CREATED));
         assertThat(catalog(get("/equipamentos").param("q", character).with(user(CLIENT).roles("CLIENTE"))))
                 .extracting(EquipmentSummary::assetCode).containsExactly("LITERAL" + character);
@@ -308,7 +309,7 @@ class EquipmentIT {
 
     @Test
     void shouldPaginateStablyLimitSizeAndKeepFiltersInLinks() throws Exception {
-        for (int i = 2; i <= 22; i++) equipment.saveAndFlush(new Equipment("NB-" + i, "Notebook básico", "Descrição",
+        for (int i = 2; i <= 22; i++) equipment.saveAndFlush(new Equipment(1L, "NB-" + i, "Notebook básico", "Descrição",
                 EquipmentCategory.NOTEBOOK, new BigDecimal("49.90"), CREATED));
         var first = catalog(get("/equipamentos").with(user(CLIENT).roles("CLIENTE")));
         var second = catalog(get("/equipamentos").param("page", "1").with(user(CLIENT).roles("CLIENTE")));
@@ -335,7 +336,7 @@ class EquipmentIT {
     @ParameterizedTest
     @ValueSource(strings = {"priceAsc", "priceDesc", "newest"})
     void shouldApplyAllowedSortAndIdTieBreaker(String sort) throws Exception {
-        var newer = equipment.saveAndFlush(new Equipment("CAM-002", "Câmera", "Descrição", EquipmentCategory.CAMERA,
+        var newer = equipment.saveAndFlush(new Equipment(1L, "CAM-002", "Câmera", "Descrição", EquipmentCategory.CAMERA,
                 new BigDecimal("100"), CREATED.plusSeconds(60)));
         var page = catalog(get("/equipamentos").param("sort", sort).with(user(CLIENT).roles("CLIENTE")));
         assertThat(page.getContent()).extracting(EquipmentSummary::id).containsExactlyElementsOf(

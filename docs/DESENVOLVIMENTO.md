@@ -1,5 +1,7 @@
 # Guia de desenvolvimento local
 
+> **Atualização M1 (01/11/2026):** veja o [guia de empresas](EMPRESAS.md) para migração, permissões e cadastro controlado. Demos novas têm duas empresas, quatro contas, oito equipamentos e oito reservas; demos antigas preservam a carga anterior. Use `Start-Demo.ps1 -Instance marketplace` para testar separadamente em 8082. Os roteiros históricos abaixo documentam a base anterior; o ADMIN agora acessa somente sua empresa e o bloqueio de cliente é local à empresa.
+
 Este guia descreve o ambiente normal com `.env`. Para usar dados fictícios em banco separado, veja [a demonstração](DEMONSTRACAO.md). Para a visão geral e capturas, volte ao [README](../README.md).
 
 ## Tecnologias e decisões

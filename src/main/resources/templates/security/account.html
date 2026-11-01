@@ -15,6 +15,7 @@
     </section>
     <section th:if="${isAdmin}" class="card p-4" aria-labelledby="admin-titulo">
         <h2 id="admin-titulo" class="h5">Administração</h2>
+        <p>Empresa: <strong th:text="${companyName}"></strong></p>
         <p class="text-secondary">Gerencie os clientes e as unidades físicas do catálogo.</p>
         <div class="d-flex flex-wrap gap-2">
             <a class="btn btn-primary" th:href="@{/equipamentos}">Gerenciar equipamentos</a>
