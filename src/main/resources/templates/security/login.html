@@ -11,6 +11,7 @@
         <div th:if="${param.error}" class="alert alert-danger" role="alert" tabindex="-1" autofocus>Não foi possível entrar. Verifique suas credenciais e se sua conta está ativa.</div>
         <div th:if="${param.inactive}" class="alert alert-warning" role="alert" tabindex="-1" autofocus>Sua sessão foi encerrada porque a conta não está ativa. Entre em contato com o administrador.</div>
         <div th:if="${param.logout}" class="alert alert-success" role="status">Você saiu da sua conta.</div>
+        <div th:if="${registered == true}" class="alert alert-success" role="status">Conta criada. Entre com seu e-mail e senha para continuar.</div>
         <form th:action="@{/login}" method="post">
             <div class="mb-3">
                 <label for="email" class="form-label">E-mail</label>
@@ -22,7 +23,7 @@
             </div>
             <button type="submit" class="btn btn-primary w-100">Entrar</button>
         </form>
-        <p class="small text-secondary mt-4 mb-0">Ainda não tem acesso? Solicite seu cadastro ao administrador.</p>
+        <p class="small text-secondary mt-4 mb-0">Ainda não tem uma conta? <a th:href="@{/cadastro}">Cadastre-se como cliente</a>.</p>
     </section>
 </main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>

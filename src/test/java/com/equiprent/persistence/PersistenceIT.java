@@ -105,8 +105,8 @@ class PersistenceIT {
 
     @Test
     void shouldMigrateEmptyDatabaseAndStartHttpServer() throws Exception {
-        assertThat(flyway.info().applied()).hasSize(2);
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("2");
+        assertThat(flyway.info().applied()).hasSize(3);
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("3");
         assertThat(flyway.info().pending()).isEmpty();
         assertThat(jdbc.queryForList("""
                 SELECT table_name FROM information_schema.tables
@@ -135,12 +135,12 @@ class PersistenceIT {
                         "--spring.jpa.hibernate.ddl-auto=validate")) {
             assertThat(restarted.getBean(EntityManagerFactory.class).isOpen()).isTrue();
             var restartedFlyway = restarted.getBean(Flyway.class);
-            assertThat(restartedFlyway.info().applied()).hasSize(2);
+            assertThat(restartedFlyway.info().applied()).hasSize(3);
             assertThat(restartedFlyway.migrate().migrationsExecuted).isZero();
             assertThat(restarted.getBean(ReservationRepository.class).findById(reservation.getId()))
                     .isPresent();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Long.class))
-                    .isEqualTo(2L);
+                    .isEqualTo(3L);
         }
     }
 

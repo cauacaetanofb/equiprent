@@ -12,6 +12,10 @@ public class Company {
     private String code;
     @Column(nullable = false, length = 120)
     private String name;
+    @Column(length = 120)
+    private String city;
+    @Column(length = 2)
+    private String state;
     @Column(nullable = false)
     private boolean active;
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -20,5 +24,7 @@ public class Company {
     public Long getId() { return id; }
     public String getCode() { return code; }
     public String getName() { return name; }
+    public String getCity() { return city; }
+    public String getState() { return state; }
     public boolean isActive() { return active; }
 }

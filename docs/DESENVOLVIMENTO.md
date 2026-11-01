@@ -79,11 +79,11 @@ O volume persistente é `equiprent_postgres_data`. Não é necessário apagar da
 
 ## Migrações e dados
 
-Flyway aplica `V1__create_initial_schema.sql` e `V2__add_company_ownership.sql`. A primeira cria o domínio de locação; a segunda adiciona empresas e vínculos, associando os registros anteriores à Empresa inicial sem redefinir senhas, preços ou históricos.
+Flyway aplica V1 (domínio de locação), V2 (empresas e vínculos) e `V3__add_company_location.sql` (cidade/UF opcionais). As migrações preservam contas, preços, reservas e históricos. A V3 não preenche localizações por suposição.
 
 Tabelas: `app_user`, `company`, `company_membership`, `company_customer`, `equipment`, `reservation` e `reservation_event`, além de `flyway_schema_history`. Não há carga automática de contas, equipamentos ou reservas. A Empresa inicial é parte da estrutura de migração e tem nome configurável.
 
-Hibernate usa `ddl-auto=validate`. Evoluções de banco exigem novas migrações; mantenha V1 e V2 intactas depois de aplicadas.
+Hibernate usa `ddl-auto=validate`. Evoluções de banco exigem novas migrações; mantenha V1, V2 e V3 intactas depois de aplicadas.
 
 ## Diagnóstico de conexão
 
@@ -122,6 +122,12 @@ Para verificar a disputa simultânea pelo mesmo equipamento:
 .\mvnw.cmd '-Dit.test=ReservationIT#shouldAllowExactlyOneOfTwoConcurrentOverlappingReservations' verify
 ```
 
+Para verificar busca pública, cadastro, continuidade após login, localização e migração V2 → V3:
+
+```powershell
+.\mvnw.cmd '-Dit.test=MarketplaceAccessIT,CompanyLocationMigrationIT' verify
+```
+
 Relatórios: `target/surefire-reports` e `target/failsafe-reports`. Para executar o JAR com o banco já iniciado:
 
 ```powershell
@@ -134,6 +140,8 @@ Em Linux/macOS, use `sh ./mvnw` e exporte as variáveis do ambiente antes da exe
 ## Interface e verificações manuais
 
 Em um banco de teste dedicado, use contas individuais e duas empresas. Confira os seguintes cenários:
+
+O roteiro da jornada pública está em [MARKETPLACE.md](MARKETPLACE.md).
 
 1. Administrador A mantém somente seus equipamentos e reservas; administrador B não acessa esses registros por URL ou formulário.
 2. Cliente consulta suas reservas entre empresas, mas não acessa reservas de outro cliente.

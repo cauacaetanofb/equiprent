@@ -14,6 +14,22 @@ import com.equiprent.reservation.AvailabilityRules;
 
 public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
+    @Query("""
+            select e from Equipment e join fetch e.company c
+            where c.active and e.condition = com.equiprent.equipment.EquipmentCondition.OPERATIONAL
+              and lower(e.name) like :search escape '!'
+              and (:category is null or e.category = :category)
+              and (:city = '' or lower(c.city) like :city escape '!')
+              and (:state is null or c.state = :state)
+              and (:onlyAvailable = false or not exists (
+                select r.id from Reservation r where r.equipment = e and
+            """ + AvailabilityRules.BLOCKING_RESERVATION + "))")
+    Page<Equipment> searchPublic(@Param("search") String search,
+            @Param("category") EquipmentCategory category, @Param("city") String city,
+            @Param("state") String state, @Param("onlyAvailable") boolean onlyAvailable,
+            @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate,
+            @Param("today") LocalDate today, Pageable pageable);
+
     Optional<Equipment> findByCompanyIdAndAssetCode(Long companyId, String assetCode);
 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "company")

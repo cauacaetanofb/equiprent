@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="EquipRent: organização de aluguel de equipamentos para pequenas empresas.">
+    <meta name="description" content="Encontre equipamentos para alugar, compare empresas e consulte a disponibilidade para o seu período no EquipRent.">
     <title>EquipRent | Aluguel de equipamentos</title>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
@@ -13,9 +13,18 @@
 <main id="conteudo" tabindex="-1" class="container py-5">
     <section class="hero p-4 p-md-5 mb-5" aria-labelledby="titulo">
         <p class="eyebrow mb-3">ALUGUEL DE EQUIPAMENTOS</p>
-        <h1 id="titulo" class="display-5 fw-semibold mb-4">Cada equipamento.<br>Cada reserva. Tudo organizado.</h1>
-        <p class="lead mb-4">Uma forma simples de acompanhar o aluguel de notebooks, câmeras e ferramentas, da reserva à devolução.</p>
-        <a class="btn btn-light px-4 py-2 fw-semibold" href="#sobre">Conheça o EquipRent</a>
+        <h1 id="titulo" class="display-5 fw-semibold mb-4">O equipamento certo.<br>No período que você precisa.</h1>
+        <p class="lead mb-4">Compare empresas, confira as diárias e encontre notebooks, câmeras e ferramentas para alugar.</p>
+        <form th:action="@{/catalogo}" method="get" class="row g-3 align-items-end" aria-label="Buscar equipamentos para alugar">
+            <div class="col-lg-4"><label for="home-q" class="form-label">O que você precisa?</label>
+                <input id="home-q" name="q" type="search" class="form-control" maxlength="120" placeholder="Ex.: furadeira"></div>
+            <div class="col-sm-6 col-lg-3"><label for="home-start" class="form-label">Início</label>
+                <input id="home-start" name="startDate" type="date" max="9999-12-31" class="form-control" required></div>
+            <div class="col-sm-6 col-lg-3"><label for="home-end" class="form-label">Fim (inclusive)</label>
+                <input id="home-end" name="endDate" type="date" max="9999-12-31" class="form-control" required></div>
+            <div class="col-lg-2"><button type="submit" class="btn btn-light w-100">Buscar</button></div>
+        </form>
+        <a class="link-light d-inline-block mt-3" th:href="@{/catalogo}">Explorar o catálogo sem datas</a>
     </section>
     <section id="sobre" aria-labelledby="sobre-titulo">
         <div class="row g-4 align-items-start mb-4">
@@ -33,8 +42,8 @@
                 <article class="card h-100 p-4">
                     <span class="step mb-4" aria-hidden="true">01</span>
                     <h3 class="h5">Equipamentos</h3>
-                    <p class="text-secondary mb-3">Catálogo por unidade física, com categoria, diária e condição de uso.</p>
-                    <a th:href="@{/equipamentos}">Consultar catálogo</a>
+                    <p class="text-secondary mb-3">Compare equipamentos de diferentes empresas, com categoria, localização e diária.</p>
+                    <a th:href="@{/catalogo}">Consultar catálogo</a>
                 </article>
             </div>
             <div class="col-md-4">

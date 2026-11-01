@@ -4,7 +4,7 @@
 
 Construir um marketplace de aluguel de equipamentos: o cliente pesquisa equipamento e período, compara empresas e diárias, solicita uma reserva e negocia com a empresa pelo site. A empresa aprova a reserva e acompanha retirada, devolução e histórico.
 
-A base de locação e a M1 (empresas e permissões) estão implementadas. O sistema atual exige login para consultar o catálogo, permite confirmação direta pelo cliente e mantém o cadastro de clientes pela empresa. Busca pública, solicitação sujeita a aprovação, proposta negociada e chat ainda serão implementados nas etapas M2 a M4.
+A base de locação, a M1 (empresas e permissões) e a M2 (busca pública e cadastro pessoal) estão implementadas. O cliente pesquisa sem login por equipamento, categoria, período e cidade/UF, compara empresas e pode criar sua conta. A confirmação de reserva ainda é direta pelo cliente. Solicitação sujeita a aprovação, proposta negociada e chat serão implementados nas etapas M3 e M4.
 
 O ambiente de execução usa apenas a configuração normal com `.env` e `compose.yaml`. O cadastro inicial de administrador é explícito, e novas empresas são provisionadas por `scripts/Register-Company.ps1`. Não há contas, equipamentos ou reservas carregados automaticamente.
 
@@ -16,12 +16,12 @@ Antes de cada nova implementação, apresentar mudanças, partes afetadas e veri
 
 Monólito Java 21/Spring Boot com MVC, Thymeleaf e Bootstrap local, usando PostgreSQL 17. Organização por funcionalidade: `company`, `user`, `equipment`, `reservation`, `security` e `home`. Controllers validam formulários; services revalidam permissões e coordenam transações; JPA e JDBC acessam o banco.
 
-Flyway aplica V1 e V2. Não editar migrações já aplicadas; usar novas versões para evoluir o esquema. Hibernate usa `ddl-auto=validate` e `open-in-view=false`. A V2 associa registros anteriores à Empresa inicial, preservando contas, senhas, IDs, datas, valores e eventos.
+Flyway aplica V1, V2 e V3. Não editar migrações já aplicadas; usar novas versões para evoluir o esquema. Hibernate usa `ddl-auto=validate` e `open-in-view=false`. A V2 associa registros anteriores à Empresa inicial; a V3 acrescenta cidade/UF opcionais. Contas, senhas, IDs, datas, valores e eventos são preservados.
 
 | Estrutura | Responsabilidade |
 | --- | --- |
 | `app_user` | Conta pessoal com e-mail normalizado único, hash de senha, papel e atividade. |
-| `company` | Empresa proprietária das unidades, com nome, código estável e atividade. |
+| `company` | Empresa proprietária das unidades, com nome, código estável, atividade e cidade/UF opcionais. |
 | `company_membership` | Vínculo administrativo ativo: uma empresa por conta e vários administradores por empresa. |
 | `company_customer` | Relação comercial e bloqueio de novos aluguéis por empresa, preservando a conta global do cliente. |
 | `equipment` | Unidade física de uma empresa, com código imutável e único dentro dela, categoria, diária e condição. |
@@ -35,6 +35,8 @@ Flyway aplica V1 e V2. Não editar migrações já aplicadas; usar novas versõe
 - Bloquear cliente impede novos aluguéis somente naquela empresa e exige resolver as reservas pendentes nela. O login e o histórico permanecem acessíveis.
 - Papel, empresa e autoria enviados pelo navegador não concedem acesso. Rotas privadas alheias retornam 404; ações administrativas exigem autorização no servidor.
 - Login usa sessão, PBKDF2, CSRF e logout via POST. Senhas têm 12 a 64 caracteres. Bootstrap e provisionamento não promovem clientes nem redefinem senhas existentes.
+- `/catalogo` publica somente os dados comerciais de empresas ativas e equipamentos operacionais. `/cadastro` cria somente CLIENTE; vinculação comercial ocorre na reserva. Login/cadastro preservam a pesquisa e as datas por destinos construídos no servidor.
+- Cidade/UF são editáveis pelo administrador da própria empresa em `/admin/empresa`. A alteração bloqueia a empresa para serializar atualizações e revalida conta/vínculo ativos.
 
 ### Períodos, valores e disponibilidade
 
@@ -61,11 +63,11 @@ A suíte de testes usa PostgreSQL descartável e cobre migrações, autorizaçã
 
 ## 3. Marketplace — fluxo e modelo planejados
 
-**Situação:** fluxo aprovado em 01/11/2026. M1 implementa empresas e permissões; jornada pública, novos estados, propostas e chat continuam planejados. Company é uma entidade JPA; os vínculos administrativos e comerciais são tabelas acessadas por JDBC. Nomes de entidades e estados das etapas seguintes ainda são propostas.
+**Situação:** fluxo aprovado em 01/11/2026. M1 implementa empresas e permissões; M2 implementa busca pública, cidade/UF, cadastro pessoal e continuidade após login. Novos estados, propostas e chat continuam planejados. Company é uma entidade JPA; os vínculos administrativos e comerciais são tabelas acessadas por JDBC. Nomes de entidades e estados das etapas seguintes ainda são propostas.
 
 ### 3.1. Jornada do cliente e da empresa
 
-1. Visitante pesquisa equipamento e período sem precisar entrar na conta. O catálogo mostra empresa, equipamento, diária e total estimado para os dias inclusivos; cidade/UF é uma proposta de filtro a validar antes da etapa M2.
+1. Visitante pesquisa equipamento e período sem precisar entrar na conta. O catálogo mostra empresa, equipamento, diária e total estimado para os dias inclusivos, com filtros opcionais por cidade/UF da empresa, aprovados e implementados em M2.
 2. Cliente entra na própria conta e envia uma solicitação para uma unidade física e datas específicas. A tela deixa explícito que o envio ainda não garante o aluguel.
 3. Solicitação fica como **Aguardando aprovação**. Cliente e administradores autorizados daquela empresa podem consultar os detalhes e conversar no chat vinculado a ela.
 4. Empresa e cliente negociam. Uma proposta estruturada registra diária, total e condições combinadas. Se o preço ou as condições mudarem, o cliente deve aceitar a versão correspondente antes da confirmação; uma mensagem livre no chat não substitui esse aceite registrado.
@@ -160,7 +162,7 @@ Salvar mensagens não confirma reservas nem altera datas/preços automaticamente
 
 ## 4. Etapas propostas para o marketplace
 
-**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. M1 foi aprovada e implementada; M2 a M5 continuam pendentes. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
+**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. M1 e M2 foram aprovadas e implementadas; M3 a M5 continuam pendentes. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
 
 ### M1 — Empresas e permissões
 
@@ -177,12 +179,14 @@ Salvar mensagens não confirma reservas nem altera datas/preços automaticamente
 
 ### M2 — Busca pública entre empresas e acesso do cliente (depende de M1)
 
-- [ ] Liberar consulta pública por equipamento/período, exibindo empresa, diária e total estimado com paginação.
-- [ ] Definir e implementar a entrada de novos clientes: proposta de cadastro público de conta pessoal, sem escolha de papel administrativo.
-- [ ] Preservar pesquisa e datas ao solicitar login; manter reservas, dados pessoais e administração privados.
-- [ ] Confirmar campos de localização e critérios de exibição de empresas/equipamentos antes de implementar os filtros correspondentes.
+- [x] Liberar consulta pública por equipamento/período, exibindo empresa, diária e total estimado com paginação.
+- [x] Implementar cadastro público de conta pessoal com nome, e-mail, senha e confirmação, sem escolha de papel administrativo.
+- [x] Preservar pesquisa e datas ao solicitar login; manter reservas, dados pessoais e administração privados.
+- [x] Publicar empresas ativas e unidades operacionais; adicionar cidade/UF opcionais, editáveis pelo administrador e usadas nos filtros.
 
 **Critério de conclusão:** visitante compara resultados de pelo menos duas empresas e entra/cria conta para continuar, sem receber dados privados. A busca usa a mesma regra de disponibilidade das operações de reserva. Esta etapa intermediária ainda não é uma liberação comercial do marketplace.
+
+**Entrega em 01/11/2026:** catálogo público separado das consultas administrativas, dados de saída próprios, filtro por nome/categoria/período/cidade/UF e ordenação por diária. V3 preserva os dados e mantém localização vazia para empresas existentes. Cadastro público fixa CLIENTE, trata e-mail duplicado também sob concorrência e não cria vínculos administrativos. Pesquisa/equipamento/datas permanecem durante cadastro e login; a reserva é revalidada e exige confirmação explícita. Confirmação de e-mail e recuperação de acesso ficam para entrega posterior, antes da abertura ao público. Roteiro em [docs/MARKETPLACE.md](docs/MARKETPLACE.md), resultados em [docs/VALIDACOES.md](docs/VALIDACOES.md).
 
 ### M3 — Solicitação, negociação de valores e aprovação (depende de M2)
 
@@ -223,8 +227,8 @@ O fluxo central já foi aprovado. Os pontos abaixo são propostas ou perguntas p
 | Vínculos administrativos | M1: conta individual vinculada a uma empresa. Convites, remoção e gestão de várias empresas pela mesma conta ficam para revisão futura. | Base implementada em M1 |
 | Migração dos dados atuais | Empresa inicial recebe os dados antigos; nome configurável por INITIAL_COMPANY_NAME. V1 preservada e V2 testada com dados anteriores. | Implementado em M1 |
 | Desativação de empresa/vínculo | M1 revalida atividade e preserva contratos; não oferece tela para essas alterações. Definir operação/regularização antes de criar tal interface. | Verificações implementadas; gestão futura |
-| Cadastro e recuperação de acesso | Proposta de cadastro público de cliente; escolher confirmação de contato e fluxo de recuperação, sem senha definida pela empresa. | Antes de M2; recuperação antes de uso real |
-| Localização e retirada | Proposta de cidade/UF na busca; definir endereço público, retirada presencial, entrega e área atendida. | Antes de M2 |
+| Cadastro e recuperação de acesso | Cadastro pessoal implementado em M2; confirmação de e-mail, recuperação e proteção contra abuso para operação pública permanecem pendentes. | Antes de uso real |
+| Localização e retirada | Cidade/UF da empresa aprovadas e implementadas em M2. Endereço de retirada, entrega e área atendida permanecem a definir. | Antes de uso real |
 | Composição do preço | Proposta de diária negociada e total por dias inclusivos; taxas, caução e descontos separados não estão definidos. | Antes de M3 |
 | Solicitações sem resposta | Definir expiração e limites contra pedidos repetidos; nunca aprovar pedido com início passado. | Antes de M3 |
 | Cancelamento e recusa | Manter motivo da empresa; revisar prazos e regras comerciais. Não incluir multa automática neste ciclo. | Antes de M3 |

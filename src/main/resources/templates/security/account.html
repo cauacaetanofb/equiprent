@@ -21,12 +21,13 @@
             <a class="btn btn-primary" th:href="@{/equipamentos}">Gerenciar equipamentos</a>
             <a class="btn btn-outline-secondary" th:href="@{/admin/clientes}">Gerenciar clientes</a>
             <a class="btn btn-outline-secondary" th:href="@{/admin/reservas}">Gerenciar reservas</a>
+            <a class="btn btn-outline-secondary" th:href="@{/admin/empresa}">Localização da empresa</a>
         </div>
     </section>
     <section th:unless="${isAdmin}" class="card p-4">
         <h2 class="h5">Conheça o catálogo</h2>
         <p class="text-secondary">Encontre equipamentos disponíveis para o período desejado, confira a estimativa e faça sua reserva.</p>
-        <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" th:href="@{/equipamentos}">Consultar equipamentos</a>
+        <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" th:href="@{/catalogo}">Consultar equipamentos</a>
             <a class="btn btn-outline-secondary" th:href="@{/reservas}">Minhas reservas</a></div>
     </section>
 </main>

@@ -4,11 +4,16 @@
 `reservation_event`, com chaves, restrições e índices. Ela não insere usuários,
 senhas ou dados de demonstração.
 
-Ao iniciar a aplicação, o Flyway aplica a V1 se ainda não estiver registrada em
-`flyway_schema_history`. Nas próximas inicializações, valida o checksum e não
-reaplica a migração. Usar `V2__...sql` para alterações posteriores; não editar
+`V2__add_company_ownership.sql` adiciona empresas e vínculos, preservando os
+registros anteriores na Empresa inicial. `V3__add_company_location.sql` adiciona
+cidade e UF opcionais, preenchidas juntas e sem localização automática.
+
+Ao iniciar a aplicação, o Flyway aplica as migrações pendentes e registra em
+`flyway_schema_history`. Nas próximas inicializações, valida os checksums e não
+reaplica as migrações. Usar `V4__...sql` para alterações posteriores; não editar
 migrações já aplicadas nem apagar o volume para atualizar o esquema.
 
 O Hibernate está configurado com `ddl-auto=validate`. O Flyway é responsável
-por modificar o esquema. Os testes `PersistenceIT` aplicam a mesma migração em
-PostgreSQL 17 descartável e validam também uma segunda inicialização.
+por modificar o esquema. Os testes `PersistenceIT`, `CompanyMigrationIT` e
+`CompanyLocationMigrationIT` verificam instalação limpa, atualização de V1/V2,
+preservação dos dados e segunda inicialização em PostgreSQL 17 descartável.

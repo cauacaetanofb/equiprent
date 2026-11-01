@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Localização da empresa')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main id="conteudo" tabindex="-1" class="container py-5">
+    <a th:href="@{/conta}">Voltar à minha conta</a>
+    <section class="card form-card mx-auto p-4 mt-4" aria-labelledby="titulo">
+        <p class="eyebrow text-secondary" th:text="${companyName}"></p>
+        <h1 id="titulo" class="h2">Localização da empresa</h1>
+        <p class="text-secondary">Cidade e UF serão exibidas no catálogo público e usadas na busca. Informe onde sua empresa está localizada.</p>
+        <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
+        <form th:action="@{/admin/empresa}" th:object="${locationForm}" method="post">
+            <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert" tabindex="-1" autofocus>
+                <ul class="mb-0"><li th:each="error : ${#fields.errors('*')}" th:text="${error}"></li></ul>
+            </div>
+            <div class="row g-3">
+                <div class="col-sm-9"><label for="city" class="form-label">Cidade</label>
+                    <input th:field="*{city}" class="form-control" maxlength="120" autocomplete="address-level2" aria-describedby="location-help" th:attr="aria-invalid=${#fields.hasErrors('city')}"></div>
+                <div class="col-sm-3"><label for="state" class="form-label">UF</label>
+                    <select th:field="*{state}" class="form-select" autocomplete="address-level1" aria-describedby="location-help" th:attr="aria-invalid=${#fields.hasErrors('state')}">
+                        <option value="">Selecione</option><option th:each="uf : ${states}" th:value="${uf}" th:text="${uf}"></option>
+                    </select></div>
+            </div>
+            <p id="location-help" class="form-text">Preencha os dois campos. Para remover a localização publicada, deixe ambos vazios.</p>
+            <button class="btn btn-primary mt-2" type="submit">Salvar localização</button>
+        </form>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

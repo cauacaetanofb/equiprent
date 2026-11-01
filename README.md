@@ -1,14 +1,16 @@
 # EquipRent
 
-Sistema web de gestão de aluguel de equipamentos para empresas. Organiza unidades físicas, disponibilidade por período, reservas, retiradas, devoluções e histórico, com acesso separado por empresa.
+Sistema web de aluguel de equipamentos com busca pública entre empresas, cadastro pessoal de clientes e gestão de reservas, retiradas, devoluções e histórico, com acesso administrativo separado por empresa.
 
-[Execução local](docs/DESENVOLVIMENTO.md) · [Empresas e permissões](docs/EMPRESAS.md) · [Planejamento](PLANEJAMENTO.md) · [Validações](docs/VALIDACOES.md)
+[Execução local](docs/DESENVOLVIMENTO.md) · [Busca e cadastro](docs/MARKETPLACE.md) · [Empresas e permissões](docs/EMPRESAS.md) · [Planejamento](PLANEJAMENTO.md) · [Validações](docs/VALIDACOES.md)
 
 ## Funcionalidades
 
 | Cliente | Administrador da empresa |
 | --- | --- |
-| Consultar catálogo e disponibilidade após entrar na conta | Cadastrar equipamentos e clientes |
+| Pesquisar equipamentos e disponibilidade sem login | Cadastrar equipamentos e clientes |
+| Comparar empresas, cidade/UF, diária e total estimado | Editar a cidade e UF da própria empresa |
+| Criar uma conta pessoal e continuar a pesquisa após entrar | Consultar somente os dados administrativos da própria empresa |
 | Estimar diárias e confirmar reservas | Gerenciar catálogo, diária e condição física |
 | Consultar somente suas reservas e histórico | Consultar reservas da própria empresa |
 | Cancelar reservas ainda não retiradas | Cancelar com motivo e registrar retirada/devolução |
@@ -74,6 +76,6 @@ A [integração contínua](.github/workflows/ci.yml) executa a suíte em JDK 21 
 
 ## Evolução do produto
 
-A separação de empresas está implementada. Busca pública, cadastro pessoal de clientes, solicitações sujeitas à aprovação, negociação de valores e chat estão planejados. Hoje o cliente confirma a reserva diretamente, e seu cadastro é feito pela empresa.
+A separação de empresas, busca pública, localização e cadastro pessoal de clientes estão implementados. Hoje o cliente confirma a reserva diretamente. Solicitações sujeitas à aprovação e negociação de valores entram na M3; chat, na M4.
 
-Ainda não há pagamento, recuperação de senha, multa automática, cadastro público de empresas, carrinho ou edição do período de uma reserva. A publicação depende de configuração e operação próprias. O [planejamento](PLANEJAMENTO.md) distingue o comportamento atual das próximas entregas.
+Ainda não há confirmação de e-mail, recuperação de senha, pagamento, multa automática, cadastro público de empresas, carrinho ou edição do período de uma reserva. A publicação depende de configuração e operação próprias. O [planejamento](PLANEJAMENTO.md) distingue o comportamento atual das próximas entregas.

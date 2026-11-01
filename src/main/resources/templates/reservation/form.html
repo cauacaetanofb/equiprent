@@ -4,7 +4,7 @@
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
 <main id="conteudo" tabindex="-1" class="container py-5">
-    <a th:href="@{/equipamentos}">Voltar ao catálogo</a>
+    <a th:href="@{${catalogBackUrl}}">Voltar aos resultados</a>
     <h1 class="h2 mt-4">Nova reserva</h1>
     <p th:if="${equipment != null}" class="lead" th:text="|${equipment.name} · ${equipment.assetCode}|"></p>
     <p th:if="${equipment != null}" class="text-secondary" th:text="${equipment.companyName}"></p>

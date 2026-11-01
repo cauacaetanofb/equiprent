@@ -14,7 +14,11 @@ public class NavigationAdvice {
         model.addAttribute("isAdmin", request.isUserInRole("ADMIN"));
         String path = request.getRequestURI().substring(request.getContextPath().length());
         String section = "";
-        if (path.equals("/equipamentos") || path.startsWith("/equipamentos/")
+        if (path.equals("/catalogo") || path.startsWith("/catalogo/")) {
+            section = "catalog";
+        } else if (path.equals("/admin/empresa")) {
+            section = "company";
+        } else if (path.equals("/equipamentos") || path.startsWith("/equipamentos/")
                 || path.startsWith("/admin/equipamentos")) {
             section = "equipment";
         } else if (path.equals("/reservas") || path.startsWith("/reservas/")

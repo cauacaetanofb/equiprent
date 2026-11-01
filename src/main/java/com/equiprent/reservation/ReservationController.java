@@ -29,7 +29,10 @@ public class ReservationController {
     void bind(WebDataBinder binder) { binder.setAllowedFields("equipmentId", "startDate", "endDate"); }
 
     @ModelAttribute
-    void dates(Model model) { model.addAttribute("today", period.today()); }
+    void dates(Model model, HttpServletRequest request) {
+        model.addAttribute("today", period.today());
+        model.addAttribute("catalogBackUrl", com.equiprent.catalog.CatalogJourney.searchUrl(request));
+    }
 
     @GetMapping("/nova")
     public String form(@ModelAttribute ReservationForm reservationForm, BindingResult binding, Model model) {

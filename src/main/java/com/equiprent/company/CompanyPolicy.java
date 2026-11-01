@@ -14,13 +14,22 @@ public class CompanyPolicy {
     public CompanyPolicy(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
     public CompanyAccess admin(User actor) {
+        return admin(actor, false);
+    }
+
+    // Evita promover dois bloqueios compartilhados simultâneos ao editar a mesma empresa.
+    public CompanyAccess adminForCompanyUpdate(User actor) {
+        return admin(actor, true);
+    }
+
+    private CompanyAccess admin(User actor, boolean updateCompany) {
         if (actor.getRole() != UserRole.ADMIN) throw denied();
         var result = jdbc.query("""
                 SELECT c.id, c.name FROM company c
                 JOIN company_membership m ON m.company_id = c.id
                 JOIN app_user u ON u.id = m.user_id
                 WHERE u.id = ? AND u.active AND u.role = 'ADMIN' AND m.active AND c.active
-                """ + lock("c, m, u"),
+                """ + (updateCompany ? " FOR UPDATE OF c FOR SHARE OF m, u" : lock("c, m, u")),
                 (rs, row) -> new CompanyAccess(actor, rs.getLong("id"), rs.getString("name")), actor.getId());
         if (result.size() != 1) throw denied();
         return result.getFirst();

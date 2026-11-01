@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="searchContext">
+    <input type="hidden" th:field="*{q}"><input type="hidden" th:field="*{category}">
+    <input type="hidden" th:field="*{city}"><input type="hidden" th:field="*{state}">
+    <input type="hidden" th:field="*{sort}"><input type="hidden" th:field="*{size}"><input type="hidden" th:field="*{page}">
+</th:block>
+</body>
+</html>
