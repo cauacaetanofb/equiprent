@@ -35,8 +35,8 @@ class CompanyMigrationIT {
         var equipment = jdbc.queryForMap("SELECT * FROM equipment WHERE id=1");
         var reservation = jdbc.queryForMap("SELECT * FROM reservation WHERE id=1");
         var events = jdbc.queryForList("SELECT * FROM reservation_event ORDER BY id");
-        var flyway = Flyway.configure().dataSource(source).locations("classpath:db/migration").load();
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(2);
+        var flyway = Flyway.configure().dataSource(source).locations("classpath:db/migration").target("2").load();
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
         assertThat(jdbc.queryForList("SELECT * FROM app_user ORDER BY id")).isEqualTo(users);
         var migratedEquipment = jdbc.queryForMap("SELECT * FROM equipment WHERE id=1");
         var migratedReservation = jdbc.queryForMap("SELECT * FROM reservation WHERE id=1");
@@ -49,7 +49,7 @@ class CompanyMigrationIT {
         assertThat(jdbc.queryForObject("SELECT company_id FROM company_customer WHERE user_id=2", Long.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM company", Long.class)).isEqualTo(1);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
-        assertThat(flyway.info().applied()).hasSize(3);
+        assertThat(flyway.info().applied()).hasSize(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM reservation_event", Long.class)).isEqualTo(1);
     }
 }

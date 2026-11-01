@@ -123,8 +123,12 @@ public class ReservationManagementService {
         // A leitura para autorização pode estar desatualizada depois de esperar outra transação.
         entityManager.refresh(reservation, LockModeType.PESSIMISTIC_WRITE);
         var now = clock.instant();
+        if (administrative && reservation.getStatus()==ReservationStatus.REQUESTED) {
+            throw new ReservationRuleException("Use a ação Recusar solicitação e informe o motivo.");
+        }
+        var previous=reservation.getStatus();
         reservation.cancel(now);
-        events.save(new ReservationEvent(reservation, actor, ReservationStatus.RESERVED, ReservationStatus.CANCELLED,
+        events.save(new ReservationEvent(reservation, actor, previous, ReservationStatus.CANCELLED,
                 now, form.getReason().isBlank() ? null : form.getReason()));
         entityManager.flush();
     }

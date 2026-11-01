@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Reserva confirmada')}"></head>
+<head th:replace="~{fragments/layout :: head('Situação da reserva')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
 <main id="conteudo" tabindex="-1" class="container py-5">
     <section class="card p-4 p-md-5 form-card mx-auto" aria-labelledby="titulo">
-        <p class="eyebrow text-success">RESERVA REGISTRADA</p>
+        <p class="eyebrow text-secondary">ACOMPANHE SUA RESERVA</p>
         <h1 id="titulo" class="h2" th:text="${reservation.status.name() == 'RESERVED' ? 'Reserva #' + reservation.id + ' confirmada' : 'Reserva #' + reservation.id + ' · ' + reservation.status.label}"></h1>
         <p class="lead" th:text="|${reservation.equipmentName} · ${reservation.assetCode}|"></p>
         <dl class="row">
             <dt class="col-sm-5">Início</dt><dd class="col-sm-7" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></dd>
             <dt class="col-sm-5">Fim (inclusive)</dt><dd class="col-sm-7" th:text="${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}"></dd>
-            <dt class="col-sm-5">Diária contratada</dt><dd class="col-sm-7" th:text="|R$ ${#numbers.formatDecimal(reservation.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></dd>
-            <dt class="col-sm-5">Total estimado</dt><dd class="col-sm-7" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></dd>
+            <dt class="col-sm-5">Diária registrada</dt><dd class="col-sm-7" th:text="|R$ ${#numbers.formatDecimal(reservation.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></dd>
+            <dt class="col-sm-5">Total registrado</dt><dd class="col-sm-7" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></dd>
         </dl>
-        <p class="text-secondary">O valor foi registrado com a reserva. Alterações futuras na diária do catálogo não modificam este total.</p>
+        <p th:if="${reservation.status.name() == 'REQUESTED'}" class="alert alert-info">Solicitação pendente. Acompanhe as propostas e aguarde a aprovação da empresa; o equipamento ainda não está reservado.</p>
+        <p class="text-secondary">Os detalhes da solicitação, propostas e valores contratados estão no acompanhamento.</p>
         <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" th:href="@{/reservas/{id}(id=${reservation.id})}">Acompanhar reserva</a>
             <a class="btn btn-outline-secondary" th:href="@{/reservas}">Minhas reservas</a></div>
     </section>

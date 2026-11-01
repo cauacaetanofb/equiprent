@@ -30,10 +30,13 @@ public class ReservationService {
     private final Clock clock;
     private final EntityManager entityManager;
     private final com.equiprent.company.CompanyPolicy companyPolicy;
+    private final ReservationOfferRepository offers;
 
     public ReservationService(ReservationRepository reservations, ReservationEventRepository events,
             EquipmentRepository equipment, UserRepository users, CurrentUser currentUser,
-            RentalPeriod period, Clock clock, EntityManager entityManager, com.equiprent.company.CompanyPolicy companyPolicy) {
+            RentalPeriod period, Clock clock, EntityManager entityManager, com.equiprent.company.CompanyPolicy companyPolicy,
+            ReservationOfferRepository offers) {
+        this.offers=offers;
         this.companyPolicy = companyPolicy;
         this.reservations = reservations;
         this.events = events;
@@ -67,8 +70,11 @@ public class ReservationService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 10)
-    public Long create(@Valid ReservationForm form) {
+    public Long create(@Valid ReservationForm form, ReservationQuote quote) {
         var authenticated = customer();
+        if (quote == null || !quote.matches(form,authenticated.getId())) {
+            throw new ReservationRuleException("Consulte novamente a estimativa antes de solicitar a reserva.");
+        }
         // Empresa (compartilhado) -> cliente -> equipamento -> reserva.
         var initial = equipment.findById(form.getEquipmentId()).orElseThrow(EquipmentNotFoundException::new);
         companyPolicy.requireActiveCompany(initial.getCompanyId());
@@ -79,17 +85,40 @@ public class ReservationService {
         if (!customer.isActive() || customer.getRole() != UserRole.CLIENTE) {
             throw new AccessDeniedException("Acesso não permitido.");
         }
+        var repeated=reservations.findByRequestToken(quote.token());
+        if (repeated.isPresent()) {
+            if (!repeated.get().getCustomer().getId().equals(customer.getId())) throw new AccessDeniedException("Acesso não permitido.");
+            return repeated.get().getId();
+        }
         var item = equipment.findByIdForUpdate(form.getEquipmentId()).orElseThrow(EquipmentNotFoundException::new);
         entityManager.refresh(item, LockModeType.PESSIMISTIC_WRITE);
         companyPolicy.registerCustomer(item.getCompanyId(), customer.getId());
+        var pending=reservations.findByCustomerIdAndEquipmentIdAndStartDateAndEndDateAndStatus(
+                customer.getId(),item.getId(),form.getStartDate(),form.getEndDate(),ReservationStatus.REQUESTED);
+        if (pending.isPresent()) return pending.get().getId();
         long days = period.days(form.getStartDate(), form.getEndDate());
         checkAvailable(item, form);
+        if (quote.issuedAt().isBefore(clock.instant().minus(java.time.Duration.ofMinutes(30)))
+                || item.getDailyRate().compareTo(quote.dailyRate()) != 0
+                || period.total(item.getDailyRate(),days).compareTo(quote.total()) != 0) {
+            throw new ReservationRuleException("A estimativa mudou ou expirou. Consulte o valor atualizado antes de enviar sua solicitação.");
+        }
         var now = clock.instant();
-        var reservation = reservations.saveAndFlush(new Reservation(customer, item, form.getStartDate(), form.getEndDate(),
-                item.getDailyRate(), period.total(item.getDailyRate(), days), now));
-        events.save(new ReservationEvent(reservation, customer, null, ReservationStatus.RESERVED, now, null));
+        var reservation = reservations.saveAndFlush(Reservation.request(customer,item,quote,now));
+        var initialOffer = new ReservationOffer(reservation,customer,quote.dailyRate(),quote.total(),"",now);
+        initialOffer.accept(customer,now);
+        offers.save(initialOffer);
+        events.save(new ReservationEvent(reservation, customer, null, ReservationStatus.REQUESTED, now, null));
         entityManager.flush();
         return reservation.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public ReservationQuote quote(@Valid ReservationForm form) {
+        var estimate=estimate(form);
+        return new ReservationQuote(java.util.UUID.randomUUID(),customer().getId(),form.getEquipmentId(),
+                form.getStartDate(),form.getEndDate(),estimate.equipmentName(),estimate.assetCode(),estimate.days(),
+                estimate.dailyRate(),estimate.total(),clock.instant());
     }
 
     private void checkAvailable(Equipment item, ReservationForm form) {

@@ -91,7 +91,7 @@ class ReservationIT {
     void setUp() {
         SecurityContextHolder.clearContext();
         clock.now = Instant.parse("2026-11-01T12:00:00Z");
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         customer = users.saveAndFlush(new User("Cliente", CLIENT, "hash-teste", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Outro cliente", OTHER, "hash-teste", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-teste", UserRole.ADMIN, CREATED));
@@ -112,18 +112,18 @@ class ReservationIT {
         mvc.perform(submit(form).param("customerId", "2").param("dailyRateSnapshot", "0.01")
                         .param("estimatedAmount", "0.03").param("status", "RETURNED").param("id", "999")
                         .param("createdAt", "2000-01-01"))
-                .andExpect(redirectedUrl("/reservas/1/confirmacao"));
+                .andExpect(redirectedUrl("/reservas/1"));
         var saved = reservations.findById(1L).orElseThrow();
         assertThat(saved.getCustomer().getId()).isEqualTo(customer.getId());
         assertThat(saved.getDailyRateSnapshot()).isEqualByComparingTo("49.90");
         assertThat(saved.getEstimatedAmount()).isEqualByComparingTo("149.70");
-        assertThat(saved.getStatus()).isEqualTo(ReservationStatus.RESERVED);
+        assertThat(saved.getStatus()).isEqualTo(ReservationStatus.REQUESTED);
         assertThat(saved.getCreatedAt()).isEqualTo(clock.instant());
         var history = events.findAllByReservationIdOrderByOccurredAtAscIdAsc(1L);
         assertThat(history).hasSize(1);
         assertThat(history.getFirst().getActor().getId()).isEqualTo(customer.getId());
         assertThat(history.getFirst().getPreviousStatus()).isNull();
-        assertThat(history.getFirst().getNewStatus()).isEqualTo(ReservationStatus.RESERVED);
+        assertThat(history.getFirst().getNewStatus()).isEqualTo(ReservationStatus.REQUESTED);
         assertThat(history.getFirst().getOccurredAt()).isEqualTo(saved.getCreatedAt());
         jdbc.update("UPDATE equipment SET daily_rate=99.99 WHERE id=1");
         mvc.perform(get("/reservas/1/confirmacao").with(user(CLIENT).roles("CLIENTE")))
@@ -135,8 +135,8 @@ class ReservationIT {
     @ParameterizedTest
     @CsvSource({"9,11", "10,10", "8,12", "7,9", "11,13"})
     void shouldRejectAllInclusiveOverlapShapesAndExcludeFromSearch(int start, int end) throws Exception {
-        service.create(form(1L, 9, 11));
-        assertThatExceptionOfType(ReservationRuleException.class).isThrownBy(() -> service.create(form(1L, start, end)));
+        confirmed(form(1L, 9, 11));
+        assertThatExceptionOfType(ReservationRuleException.class).isThrownBy(() -> request(form(1L, start, end)));
         assertThatExceptionOfType(ReservationRuleException.class).isThrownBy(() -> service.estimate(form(1L, start, end)));
         assertThat(available(start, end)).isEmpty();
         assertCounts(1);
@@ -144,21 +144,21 @@ class ReservationIT {
 
     @Test
     void shouldAllowAdjacentPeriodsAndSamePeriodOnDifferentUnits() throws Exception {
-        service.create(form(1L, 9, 11));
+        confirmed(form(1L, 9, 11));
         assertThat(available(12, 14)).extracting(EquipmentSummary::id).containsExactly(1L);
-        service.create(form(1L, 12, 14));
-        service.create(form(unit("NB-002").getId(), 9, 11));
+        request(form(1L, 12, 14));
+        request(form(unit("NB-002").getId(), 9, 11));
         assertCounts(3);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"RETURNED", "CANCELLED"})
     void shouldReleasePeriodWhenReservationNoLongerBlocks(String target) throws Exception {
-        var first = service.create(form(1L, 9, 11));
+        var first = confirmed(form(1L, 9, 11));
         if (target.equals("RETURNED")) jdbc.update("UPDATE reservation SET status='RETURNED', picked_up_at=created_at, returned_at=created_at WHERE id=?", first);
         else jdbc.update("UPDATE reservation SET status='CANCELLED', cancelled_at=created_at WHERE id=?", first);
         assertThat(available(9, 11)).hasSize(1);
-        service.create(form(1L, 9, 11));
+        request(form(1L, 9, 11));
         assertCounts(2);
     }
 
@@ -168,32 +168,32 @@ class ReservationIT {
         jdbc.update("UPDATE equipment SET condition=? WHERE id=1", condition);
         assertThat(available(9, 11)).isEmpty();
         if (condition.equals("RETIRED")) {
-            assertThatExceptionOfType(EquipmentNotFoundException.class).isThrownBy(() -> service.create(form(1L, 9, 11)));
+            assertThatExceptionOfType(EquipmentNotFoundException.class).isThrownBy(() -> request(form(1L, 9, 11)));
         } else {
-            assertThatExceptionOfType(ReservationRuleException.class).isThrownBy(() -> service.create(form(1L, 9, 11)));
+            assertThatExceptionOfType(ReservationRuleException.class).isThrownBy(() -> request(form(1L, 9, 11)));
         }
         assertCounts(0);
     }
 
     @Test
     void shouldBlockOverdueInUseForAnyPeriodAtSaoPauloMidnight() throws Exception {
-        var id = service.create(form(1L, 0, 0));
+        var id = confirmed(form(1L, 0, 0));
         jdbc.update("UPDATE reservation SET status='IN_USE', picked_up_at=created_at WHERE id=?", id);
         clock.now = Instant.parse("2026-11-02T02:59:59Z");
         assertThat(available(9, 11)).hasSize(1);
         assertThat(available(0, 0)).isEmpty();
         clock.now = Instant.parse("2026-11-02T03:00:00Z");
         assertThat(available(9, 11)).isEmpty();
-        assertThatExceptionOfType(ReservationRuleException.class).isThrownBy(() -> service.create(form(1L, 9, 11)));
+        assertThatExceptionOfType(ReservationRuleException.class).isThrownBy(() -> request(form(1L, 9, 11)));
         assertCounts(1);
     }
 
     @Test
     void shouldNotTreatUncollectedExpiredReservationAsOverdueUse() throws Exception {
-        service.create(form(1L, 0, 0));
+        confirmed(form(1L, 0, 0));
         clock.now = Instant.parse("2026-11-02T12:00:00Z");
         assertThat(available(9, 11)).hasSize(1);
-        service.create(form(1L, 9, 11));
+        request(form(1L, 9, 11));
         assertCounts(2);
     }
 
@@ -218,9 +218,10 @@ class ReservationIT {
         mvc.perform(get("/equipamentos").with(user(CLIENT).roles("CLIENTE")).param("endDate", "invalid"))
                 .andExpect(model().attributeHasFieldErrors("filter", "endDate"));
         var invalid = form(1L, 9, 11); invalid.setStartDate(null);
-        assertThatExceptionOfType(ConstraintViolationException.class).isThrownBy(() -> service.create(invalid));
+        assertThatExceptionOfType(ConstraintViolationException.class).isThrownBy(() -> request(invalid));
         jdbc.update("UPDATE equipment SET daily_rate=9999999999.99 WHERE id=1");
-        mvc.perform(submit(form(1L, 0, 100))).andExpect(model().attributeHasErrors("reservationForm"))
+        mvc.perform(get("/reservas/nova").with(user(CLIENT).roles("CLIENTE")).param("equipmentId","1")
+                .param("startDate",TODAY.toString()).param("endDate",TODAY.plusDays(100).toString())).andExpect(model().attributeHasErrors("reservationForm"))
                 .andExpect(content().string(containsString("O total excede o limite")));
         assertCounts(0);
     }
@@ -234,21 +235,21 @@ class ReservationIT {
         mvc.perform(post("/reservas").with(user(CLIENT).roles("CLIENTE"))).andExpect(status().isForbidden());
         mvc.perform(get("/reservas").with(user(CLIENT).roles("CLIENTE"))).andExpect(status().isOk());
         authenticate(ADMIN);
-        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.create(form(1L, 9, 11)));
+        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> request(form(1L, 9, 11)));
         authenticate(CLIENT);
-        var id = service.create(form(1L, 9, 11));
+        var id = request(form(1L, 9, 11));
         mvc.perform(get("/reservas/{id}/confirmacao", id).with(user(OTHER).roles("CLIENTE"))).andExpect(status().isNotFound());
         mvc.perform(get("/reservas/999/confirmacao").with(user(CLIENT).roles("CLIENTE"))).andExpect(status().isNotFound());
         mvc.perform(get("/reservas/nova").param("equipmentId", "999").with(user(CLIENT).roles("CLIENTE"))).andExpect(status().isNotFound());
         authenticate(OTHER);
         assertThatExceptionOfType(ReservationNotFoundException.class).isThrownBy(() -> service.confirmation(id));
         jdbc.update("UPDATE app_user SET active=false WHERE email=?", OTHER);
-        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.create(form(1L, 12, 14)));
+        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> request(form(1L, 12, 14)));
         assertCounts(1);
     }
 
     @Test
-    void shouldRenderRealFormEstimateConfirmationAndRecoverFromConflict() throws Exception {
+    void shouldRenderRealEstimateAndPendingRequestWithoutDuplicatingRepeatedSubmission() throws Exception {
         mvc.perform(get("/reservas/nova").param("equipmentId", "1").with(user(CLIENT).roles("CLIENTE")))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("Consultar estimativa")))
                 .andExpect(model().attributeDoesNotExist("estimate"));
@@ -258,14 +259,10 @@ class ReservationIT {
                 .andExpect(content().string(containsString("name=\"_csrf\"")))
                 .andExpect(content().string(containsString("value=\"2026-11-10\"")));
         assertCounts(0);
-        mvc.perform(submit(form(1L, 9, 11))).andExpect(redirectedUrl("/reservas/1/confirmacao"));
+        mvc.perform(submit(form(1L, 9, 11))).andExpect(redirectedUrl("/reservas/1"));
         mvc.perform(get("/reservas/1/confirmacao").with(user(CLIENT).roles("CLIENTE")))
-                .andExpect(status().isOk()).andExpect(content().string(containsString("Reserva #1 confirmada")));
-        mvc.perform(submit(form(1L, 9, 11))).andExpect(status().isOk())
-                .andExpect(model().attributeHasErrors("reservationForm"))
-                .andExpect(content().string(containsString("Equipamento indisponível")))
-                .andExpect(content().string(containsString("value=\"2026-11-10\"")))
-                .andExpect(content().string(not(containsString("Confirmar reserva deste período"))));
+                .andExpect(status().isOk()).andExpect(content().string(containsString("Aguardando aprovação")));
+        mvc.perform(submit(form(1L, 9, 11))).andExpect(redirectedUrl("/reservas/1"));
         assertCounts(1);
     }
 
@@ -280,9 +277,9 @@ class ReservationIT {
 
     @Test
     void shouldRollbackReservationWhenCreationEventFails() {
-        jdbc.execute("ALTER TABLE reservation_event ADD CONSTRAINT test_reject_creation CHECK (new_status <> 'RESERVED')");
+        jdbc.execute("ALTER TABLE reservation_event ADD CONSTRAINT test_reject_creation CHECK (new_status <> 'REQUESTED')");
         try {
-            assertThatExceptionOfType(DataIntegrityViolationException.class).isThrownBy(() -> service.create(form(1L, 9, 11)));
+            assertThatExceptionOfType(DataIntegrityViolationException.class).isThrownBy(() -> request(form(1L, 9, 11)));
             assertCounts(0);
         } finally {
             jdbc.execute("ALTER TABLE reservation_event DROP CONSTRAINT test_reject_creation");
@@ -290,10 +287,10 @@ class ReservationIT {
     }
 
     @Test
-    void shouldAllowExactlyOneOfTwoConcurrentOverlappingReservations() throws Exception {
+    void shouldAllowTwoPendingOverlappingRequests() throws Exception {
         var results = race(() -> bookAs(CLIENT, form(1L, 9, 11)), () -> bookAs(OTHER, form(1L, 10, 12)));
-        assertThat(results).containsExactlyInAnyOrder("created", "unavailable");
-        assertCounts(1);
+        assertThat(results).containsExactly("created", "created");
+        assertCounts(2);
         var saved = reservations.findAll().getFirst();
         assertThat(events.findAllByReservationIdOrderByOccurredAtAscIdAsc(saved.getId()).getFirst().getActor().getId())
                 .isEqualTo(saved.getCustomer().getId());
@@ -335,7 +332,7 @@ class ReservationIT {
             catch (PendingReservationsException exception) { return "pending"; }
         });
         if (results.getFirst().equals("created")) {
-            assertThat(results.get(1)).isEqualTo("pending");
+            assertThat(results.get(1)).isEqualTo("inactive");
             assertThat(users.findById(customer.getId()).orElseThrow().isActive()).isTrue();
             assertCounts(1);
         } else {
@@ -363,7 +360,7 @@ class ReservationIT {
     }
 
     @Test
-    void shouldReadPriceAfterWaitingForEquipmentLock() throws Exception {
+    void shouldRequireNewQuoteAfterPriceChangesWhileWaitingForEquipmentLock() throws Exception {
         try (var executor = Executors.newSingleThreadExecutor()) {
             var booking = new AtomicReference<Future<String>>();
             new TransactionTemplate(transactions).executeWithoutResult(transaction -> {
@@ -373,11 +370,9 @@ class ReservationIT {
                 locked.updateDetails(locked.getName(), locked.getDescription(), locked.getCategory(), new BigDecimal("75.00"), clock.instant());
                 em.flush();
             });
-            assertThat(booking.get().get(5, TimeUnit.SECONDS)).isEqualTo("created");
+            assertThat(booking.get().get(5, TimeUnit.SECONDS)).isEqualTo("unavailable");
         }
-        assertThat(reservations.findAll().getFirst().getDailyRateSnapshot()).isEqualByComparingTo("75.00");
-        assertThat(reservations.findAll().getFirst().getEstimatedAmount()).isEqualByComparingTo("225.00");
-        assertCounts(1);
+        assertCounts(0);
     }
 
     @Test
@@ -387,7 +382,7 @@ class ReservationIT {
                 equipment.findByIdForUpdate(1L).orElseThrow();
                 var request = executor.submit(() -> mvc.perform(submit(form(1L, 9, 11)))
                         .andExpect(status().isOk()).andExpect(model().attributeHasErrors("reservationForm"))
-                        .andExpect(content().string(containsString("Não foi possível confirmar agora")))
+                        .andExpect(content().string(containsString("Não foi possível solicitar agora")))
                         .andExpect(content().string(containsString("value=\"2026-11-10\""))));
                 try { request.get(7, TimeUnit.SECONDS); }
                 catch (Exception exception) { throw new IllegalStateException(exception); }
@@ -421,7 +416,7 @@ class ReservationIT {
 
     private String bookAs(String email, ReservationForm form) {
         authenticate(email);
-        try { service.create(form); return "created"; }
+        try { request(form); return "created"; }
         catch (ReservationRuleException exception) { return "unavailable"; }
         catch (AccessDeniedException exception) { return "denied"; }
         finally { SecurityContextHolder.clearContext(); }
@@ -441,8 +436,17 @@ class ReservationIT {
         form.setStartDate(TODAY.plusDays(start)); form.setEndDate(TODAY.plusDays(end)); return form;
     }
 
-    private MockHttpServletRequestBuilder submit(ReservationForm form) {
-        return post("/reservas").with(user(CLIENT).roles("CLIENTE")).with(csrf())
+    private MockHttpServletRequestBuilder submit(ReservationForm form) throws Exception {
+        var previous=SecurityContextHolder.getContext();
+        org.springframework.test.web.servlet.MvcResult quotePage;
+        try {
+            quotePage=mvc.perform(get("/reservas/nova").with(user(CLIENT).roles("CLIENTE"))
+                .param("equipmentId",form.getEquipmentId().toString()).param("startDate",form.getStartDate().toString())
+                .param("endDate",form.getEndDate().toString())).andReturn();
+        } finally { SecurityContextHolder.setContext(previous); }
+        var quoted=(ReservationForm)quotePage.getModelAndView().getModel().get("reservationForm");
+        var session=(org.springframework.mock.web.MockHttpSession)quotePage.getRequest().getSession();
+        return post("/reservas").session(session).param("quoteToken",quoted.getQuoteToken()==null ? "" : quoted.getQuoteToken()).with(user(CLIENT).roles("CLIENTE")).with(csrf())
                 .param("equipmentId", form.getEquipmentId().toString()).param("startDate", form.getStartDate().toString())
                 .param("endDate", form.getEndDate().toString());
     }
@@ -458,6 +462,17 @@ class ReservationIT {
                 .getModelAndView().getModel().get("equipmentPage");
         authenticate(CLIENT);
         return page;
+    }
+
+    private Long request(ReservationForm form) { return service.create(form,service.quote(form)); }
+
+    // Reserva já confirmada antes da nova solicitação, usada para testar disponibilidade e histórico.
+    private Long confirmed(ReservationForm form) {
+        var quote=service.quote(form);
+        var saved=reservations.saveAndFlush(new Reservation(customer,equipment.findById(form.getEquipmentId()).orElseThrow(),
+                form.getStartDate(),form.getEndDate(),quote.dailyRate(),quote.total(),clock.instant()));
+        events.save(new ReservationEvent(saved,customer,null,ReservationStatus.RESERVED,clock.instant(),null));
+        return saved.getId();
     }
 
     private void assertCounts(long count) {

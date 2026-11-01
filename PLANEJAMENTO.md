@@ -4,7 +4,7 @@
 
 Construir um marketplace de aluguel de equipamentos: o cliente pesquisa equipamento e período, compara empresas e diárias, solicita uma reserva e negocia com a empresa pelo site. A empresa aprova a reserva e acompanha retirada, devolução e histórico.
 
-A base de locação, a M1 (empresas e permissões) e a M2 (busca pública e cadastro pessoal) estão implementadas. O cliente pesquisa sem login por equipamento, categoria, período e cidade/UF, compara empresas e pode criar sua conta. A confirmação de reserva ainda é direta pelo cliente. Solicitação sujeita a aprovação, proposta negociada e chat serão implementados nas etapas M3 e M4.
+A base de locação e as etapas M1 a M3 estão implementadas: empresas e permissões, busca pública, cadastro pessoal, solicitações, propostas e aprovação. O cliente pesquisa equipamento e período, compara empresas, solicita e aceita condições. Somente a empresa confirma a reserva após revalidar o acordo e a disponibilidade. O chat será apresentado na M4.
 
 O ambiente de execução usa apenas a configuração normal com `.env` e `compose.yaml`. O cadastro inicial de administrador é explícito, e novas empresas são provisionadas por `scripts/Register-Company.ps1`. Não há contas, equipamentos ou reservas carregados automaticamente.
 
@@ -16,7 +16,7 @@ Antes de cada nova implementação, apresentar mudanças, partes afetadas e veri
 
 Monólito Java 21/Spring Boot com MVC, Thymeleaf e Bootstrap local, usando PostgreSQL 17. Organização por funcionalidade: `company`, `user`, `equipment`, `reservation`, `security` e `home`. Controllers validam formulários; services revalidam permissões e coordenam transações; JPA e JDBC acessam o banco.
 
-Flyway aplica V1, V2 e V3. Não editar migrações já aplicadas; usar novas versões para evoluir o esquema. Hibernate usa `ddl-auto=validate` e `open-in-view=false`. A V2 associa registros anteriores à Empresa inicial; a V3 acrescenta cidade/UF opcionais. Contas, senhas, IDs, datas, valores e eventos são preservados.
+Flyway aplica V1 a V4. Não editar migrações já aplicadas; usar novas versões para evoluir o esquema. Hibernate usa `ddl-auto=validate` e `open-in-view=false`. A V2 associa registros anteriores à Empresa inicial; a V3 acrescenta cidade/UF opcionais; a V4 acrescenta solicitações, propostas e acordos sem inventar aceites retroativos. Contas, senhas, IDs, datas, valores e eventos são preservados.
 
 | Estrutura | Responsabilidade |
 | --- | --- |
@@ -25,24 +25,26 @@ Flyway aplica V1, V2 e V3. Não editar migrações já aplicadas; usar novas ver
 | `company_membership` | Vínculo administrativo ativo: uma empresa por conta e vários administradores por empresa. |
 | `company_customer` | Relação comercial e bloqueio de novos aluguéis por empresa, preservando a conta global do cliente. |
 | `equipment` | Unidade física de uma empresa, com código imutável e único dentro dela, categoria, diária e condição. |
-| `reservation` | Cliente, unidade, empresa, período, estado e valores contratados. Chave estrangeira composta garante coerência entre unidade e empresa. |
+| `reservation` | Cliente, unidade, empresa, período, estado, estimativa inicial e acordo aprovado. Chave estrangeira composta garante coerência entre unidade e empresa. |
+| `reservation_offer` | Versões da proposta com diária, total, condições, autoria e aceite do titular. |
 | `reservation_event` | Autor, instante, transição e motivo; histórico preservado. |
 
 ### Autorização
 
 - ADMIN precisa de conta, vínculo e empresa ativos; administra somente os dados de sua empresa, inclusive consultas, contagens e detalhes por ID.
 - CLIENTE consulta e altera somente suas reservas e pode alugar em várias empresas. O servidor obtém o proprietário da sessão e a empresa do equipamento.
-- Bloquear cliente impede novos aluguéis somente naquela empresa e exige resolver as reservas pendentes nela. O login e o histórico permanecem acessíveis.
+- Bloquear cliente impede novos aluguéis somente naquela empresa e exige resolver contratos confirmados/em uso nela. Solicitações pendentes não impedem o bloqueio, mas não podem avançar enquanto ele persistir. O login e o histórico permanecem acessíveis.
 - Papel, empresa e autoria enviados pelo navegador não concedem acesso. Rotas privadas alheias retornam 404; ações administrativas exigem autorização no servidor.
 - Login usa sessão, PBKDF2, CSRF e logout via POST. Senhas têm 12 a 64 caracteres. Bootstrap e provisionamento não promovem clientes nem redefinem senhas existentes.
-- `/catalogo` publica somente os dados comerciais de empresas ativas e equipamentos operacionais. `/cadastro` cria somente CLIENTE; vinculação comercial ocorre na reserva. Login/cadastro preservam a pesquisa e as datas por destinos construídos no servidor.
+- `/catalogo` publica somente os dados comerciais de empresas ativas e equipamentos operacionais. `/cadastro` cria somente CLIENTE; vinculação comercial ocorre no envio da primeira solicitação. Login/cadastro preservam a pesquisa e as datas por destinos construídos no servidor.
 - Cidade/UF são editáveis pelo administrador da própria empresa em `/admin/empresa`. A alteração bloqueia a empresa para serializar atualizações e revalida conta/vínculo ativos.
 
 ### Períodos, valores e disponibilidade
 
 - Datas inclusivas em `America/Sao_Paulo`: um aluguel com início e fim no mesmo dia custa uma diária. `Clock` injetável controla a data de negócio.
 - Novo aluguel exige início a partir de hoje, fim igual/posterior ao início e no máximo 365 diárias. Anos até 9999; total limitado à precisão `numeric(14,2)`.
-- Valores em reais com `BigDecimal`, positivos e com no máximo duas casas decimais. A diária e o total são copiados na confirmação e não mudam com edições posteriores do catálogo, retirada ou devolução.
+- Valores em reais com `BigDecimal`, positivos e com no máximo duas casas decimais. Estimativa inicial e propostas são preservadas; diária, total e condições aceitas são copiados na aprovação e não mudam com edições posteriores do catálogo, retirada ou devolução.
+- `REQUESTED` não bloqueia disponibilidade. Reenvio da mesma submissão e pedido pendente idêntico não criam duplicatas nem alteram o aceite. Não há expiração automática: início passado impede nova proposta, aceite e aprovação, mantendo cancelamento/recusa disponíveis.
 - `RESERVED` e `IN_USE` bloqueiam intervalos sobrepostos; os dois extremos contam. Uso vencido bloqueia qualquer novo período até a devolução.
 - Manutenção e aposentadoria impedem novos aluguéis. Manutenção durante uso requer devolução; reservas futuras afetadas são preservadas e destacadas. Aposentadoria exige resolver reservas pendentes.
 - Disponibilidade é calculada por consulta. Não persistir um booleano indicando se a unidade está livre.
@@ -51,19 +53,20 @@ Flyway aplica V1, V2 e V3. Não editar migrações já aplicadas; usar novas ver
 
 | Estado atual | Transições |
 | --- | --- |
+| `REQUESTED` | Aprovação pela empresa → `RESERVED`; recusa com motivo → `REJECTED`; cancelamento pelo titular → `CANCELLED`. |
 | `RESERVED` | Retirada pela empresa → `IN_USE`; cancelamento pelo titular/empresa → `CANCELLED`. |
 | `IN_USE` | Devolução pela empresa → `RETURNED`. |
-| `RETURNED` / `CANCELLED` | Estados finais, sem exclusão do histórico. |
+| `RETURNED` / `CANCELLED` / `REJECTED` | Estados finais, sem exclusão do histórico. |
 
 Retirada ocorre dentro do período contratado, com unidade operacional e sem outro uso aberto. Devolução pode colocar o equipamento em manutenção na mesma transação. Cancelamento administrativo exige motivo. Atraso é calculado pelo relógio de negócio, sem estado persistido nem multa automática.
 
-Confirmação de reserva usa bloqueio compartilhado da empresa, seguido por cliente → equipamento. Operações administrativas revalidam empresa/vínculo/conta e seguem os bloqueios de cliente quando necessário, equipamento → reserva. Depois de esperar, o service recarrega e revalida os registros. Estado e evento são atômicos. Escritas externas precisam respeitar o mesmo protocolo; não há garantia de disponibilidade para SQL administrativo arbitrário.
+Solicitação e negociação usam empresa/vínculo/administrador → cliente → equipamento → reserva → proposta; empresa, vínculo e administrador recebem bloqueios compartilhados. Na aprovação, a versão atual precisa do aceite do titular e a disponibilidade é revalidada sob bloqueio do equipamento. Depois de esperar, o service recarrega os registros. Acordo, estado e evento são atômicos. Cancelamento/retirada/devolução preservam a ordem equipamento → reserva. Escritas externas precisam respeitar o mesmo protocolo; não há garantia de disponibilidade para SQL administrativo arbitrário.
 
 A suíte de testes usa PostgreSQL descartável e cobre migrações, autorização, preços, períodos, concorrência, rollback e limites de consultas. A integração contínua executa `clean verify` em JDK 21. Consulte [validações](docs/VALIDACOES.md).
 
 ## 3. Marketplace — fluxo e modelo planejados
 
-**Situação:** fluxo aprovado em 01/11/2026. M1 implementa empresas e permissões; M2 implementa busca pública, cidade/UF, cadastro pessoal e continuidade após login. Novos estados, propostas e chat continuam planejados. Company é uma entidade JPA; os vínculos administrativos e comerciais são tabelas acessadas por JDBC. Nomes de entidades e estados das etapas seguintes ainda são propostas.
+**Situação:** fluxo aprovado em 01/11/2026. M1 implementa empresas e permissões; M2 implementa busca pública, cidade/UF, cadastro pessoal e continuidade após login; M3 implementa solicitações, propostas versionadas, aceite e aprovação. O chat continua planejado para M4. Company é uma entidade JPA; os vínculos administrativos e comerciais são tabelas acessadas por JDBC. A jornada abaixo inclui o chat futuro.
 
 ### 3.1. Jornada do cliente e da empresa
 
@@ -138,7 +141,7 @@ Negociação e espera pelo aceite acontecem dentro de `REQUESTED`; o estado da p
 - **Preço precisa de aceite:** o envio da solicitação registra concordância com a estimativa/condições apresentadas naquela versão. Qualquer contraproposta da empresa invalida o aceite anterior para fins de aprovação até o cliente aceitar a nova versão. Campos ocultos enviados pelo navegador não são prova de aceite ou preço.
 - **Confirmação atômica:** travar os registros necessários, recarregar seu estado, conferir a versão aceita e a disponibilidade, gravar `RESERVED`, valores contratados e evento na mesma transação. Falha em qualquer parte reverte toda a confirmação.
 
-O bloqueio do equipamento continua sendo o ponto de serialização de aprovações conflitantes, inclusive entre instâncias da aplicação. Definir uma ordem única para os bloqueios adicionais de empresa/vínculo/cliente/solicitação ao implementar M3, preservando a ordem já definida em M1; preço, condições, aceite e cancelamento concorrentes não podem escapar da revalidação. Compartilhar o predicado de disponibilidade entre catálogo e aprovação, agora sem contar `REQUESTED` como reserva bloqueante.
+O bloqueio do equipamento serializa aprovações conflitantes, inclusive entre instâncias da aplicação. M3 usa a ordem empresa/vínculo/administrador → cliente → equipamento → reserva → proposta, recarregando os registros após a espera. Catálogo e aprovação compartilham o predicado de disponibilidade, sem contar `REQUESTED` como reserva bloqueante.
 
 O desfecho obrigatório para duas aprovações concorrentes sobrepostas é **uma confirmação e um conflito**, com somente um período bloqueado e eventos coerentes. As duas solicitações e seus históricos permanecem registrados.
 
@@ -162,7 +165,7 @@ Salvar mensagens não confirma reservas nem altera datas/preços automaticamente
 
 ## 4. Etapas propostas para o marketplace
 
-**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. M1 e M2 foram aprovadas e implementadas; M3 a M5 continuam pendentes. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
+**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. M1 a M3 foram aprovadas e implementadas; M4 e M5 continuam pendentes. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
 
 ### M1 — Empresas e permissões
 
@@ -190,15 +193,19 @@ Salvar mensagens não confirma reservas nem altera datas/preços automaticamente
 
 ### M3 — Solicitação, negociação de valores e aprovação (depende de M2)
 
-- [ ] Substituir a confirmação direta pelo cliente por `REQUESTED`, com novos estados/eventos e migrações compatíveis.
-- [ ] Implementar propostas versionadas, aceite do cliente, aprovação, recusa com motivo e cancelamento da solicitação.
-- [ ] Revalidar período, atividade, autorização, versão aceita e disponibilidade na transação de aprovação.
-- [ ] Manter retirada/devolução e histórico dos contratos confirmados, restritos à empresa responsável.
-- [ ] Testar corridas de aprovação, contraproposta, aceite, cancelamento, manutenção e desativação.
+- [x] Substituir a confirmação direta pelo cliente por `REQUESTED`, com novos estados/eventos e migrações compatíveis.
+- [x] Implementar propostas versionadas, aceite do cliente, aprovação, recusa com motivo e cancelamento da solicitação.
+- [x] Revalidar período, atividade, autorização, versão aceita e disponibilidade na transação de aprovação.
+- [x] Manter retirada/devolução e histórico dos contratos confirmados, restritos à empresa responsável.
+- [x] Testar corridas de aprovação, contraproposta, aceite, cancelamento, manutenção e desativação.
 
 **Critério de conclusão:** pedidos pendentes não bloqueiam o catálogo; somente a empresa confirma. Mudança de condições exige novo aceite. Duas aprovações simultâneas conflitantes geram uma reserva confirmada e uma recusa da operação, preservando solicitações e histórico. Sem chat ainda, a negociação estruturada pode ser exercitada pelos formulários de proposta/aceite.
 
+**Entrega em 01/11/2026:** V4 preserva contratos antigos e acrescenta propostas versionadas. A estimativa fica na sessão, com validade de 30 minutos; o envio aceita o preço exibido. Alterações de diária ou condições exigem aceite da versão atual. Aprovação, recusa e cancelamento preservam histórico; reenvios não duplicam pedidos ou aprovações. Início passado impede o avanço sem apagar solicitações. Roteiro em [docs/MARKETPLACE.md](docs/MARKETPLACE.md) e evidências em [docs/VALIDACOES.md](docs/VALIDACOES.md).
+
 ### M4 — Chat por solicitação (depende de M3)
+
+**Próxima etapa:** apresentar limites, atualização da conversa e política após encerramento para aprovação antes de alterar código.
 
 - [ ] Apresentar a forma de atualização da conversa, os limites de mensagens e a política de envio após encerramento.
 - [ ] Implementar persistência, envio e consulta paginada de mensagens entre os participantes autorizados.
@@ -229,9 +236,9 @@ O fluxo central já foi aprovado. Os pontos abaixo são propostas ou perguntas p
 | Desativação de empresa/vínculo | M1 revalida atividade e preserva contratos; não oferece tela para essas alterações. Definir operação/regularização antes de criar tal interface. | Verificações implementadas; gestão futura |
 | Cadastro e recuperação de acesso | Cadastro pessoal implementado em M2; confirmação de e-mail, recuperação e proteção contra abuso para operação pública permanecem pendentes. | Antes de uso real |
 | Localização e retirada | Cidade/UF da empresa aprovadas e implementadas em M2. Endereço de retirada, entrega e área atendida permanecem a definir. | Antes de uso real |
-| Composição do preço | Proposta de diária negociada e total por dias inclusivos; taxas, caução e descontos separados não estão definidos. | Antes de M3 |
-| Solicitações sem resposta | Definir expiração e limites contra pedidos repetidos; nunca aprovar pedido com início passado. | Antes de M3 |
-| Cancelamento e recusa | Manter motivo da empresa; revisar prazos e regras comerciais. Não incluir multa automática neste ciclo. | Antes de M3 |
+| Composição do preço | Diária negociada e total por dias inclusivos implementados; condições textuais por versão, sem taxas ou caução. | Implementado em M3 |
+| Solicitações sem resposta | Sem expiração automática; início passado impede aprovação. Pedido pendente idêntico e reenvio não duplicam registros. Limites gerais contra abuso ficam para operação pública. | Implementado em M3; abuso antes de uso real |
+| Cancelamento e recusa | Empresa recusa pedido com motivo; titular pode cancelar. Contrato confirmado continua cancelável antes da retirada, sem multa automática. | Implementado em M3 |
 | Conversas encerradas | Proposta de consulta preservada; definir até quando pode haver novos envios e limites de frequência/tamanho. | Antes de M4 |
 | Horário comercial e tolerância | Manter dias civis inclusivos em São Paulo; horários de retirada e tolerâncias ainda não definidos. | Antes de uso real |
 | Monetização | Mensalidade das empresas, comissão por locação ou outro modelo ainda não escolhidos; não adicionar cobrança por suposição. | Antes de operação comercial |

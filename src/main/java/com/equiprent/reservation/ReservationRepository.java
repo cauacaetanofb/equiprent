@@ -15,6 +15,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.domain.Specification;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long>, JpaSpecificationExecutor<Reservation> {
+    Optional<Reservation> findByRequestToken(java.util.UUID token);
+    Optional<Reservation> findByCustomerIdAndEquipmentIdAndStartDateAndEndDateAndStatus(
+            Long customerId, Long equipmentId, LocalDate startDate, LocalDate endDate, ReservationStatus status);
 
     @Override
     @EntityGraph(attributePaths = {"equipment.company", "customer"})

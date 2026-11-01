@@ -422,7 +422,7 @@ class SecurityIT {
     }
 
     private void clearData() {
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
+        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
     }
 
     private UserForm validForm() {

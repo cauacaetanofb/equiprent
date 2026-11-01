@@ -87,9 +87,11 @@ class ReservationOperationsIT {
     private User other;
     private Equipment item;
 
+    private Long requestBooking(ReservationForm form) { return creation.create(form,creation.quote(form)); }
+
     @BeforeEach void setUp() {
         SecurityContextHolder.clearContext(); clock.now = NOW;
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         customer = users.saveAndFlush(new User("Cliente", CLIENT, "hash-teste", UserRole.CLIENTE, CREATED));
         other = users.saveAndFlush(new User("Outro cliente", OTHER, "hash-teste", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-teste", UserRole.ADMIN, CREATED));
@@ -294,7 +296,7 @@ class ReservationOperationsIT {
     @Test void shouldReleaseSameDayAfterEarlyReturnAndKeepOldSnapshot() {
         operations.pickUp(1L); operations.returnEquipment(1L, returned(false));
         authenticate(CLIENT);
-        creation.create(booking(START));
+        requestBooking(booking(START));
         assertThat(reservations.count()).isEqualTo(2);
         assertThat(reservations.findById(1L).orElseThrow().getEstimatedAmount()).isEqualByComparingTo("149.70");
         assertEventCount(4);
@@ -391,7 +393,7 @@ class ReservationOperationsIT {
     @Test void shouldSerializeMaintenanceAtReturnAgainstFutureBooking() throws Exception {
         operations.pickUp(1L);
         var result = race(() -> operations.returnEquipment(1L, returned(true)), () -> {
-            authenticate(OTHER); creation.create(booking(START.plusDays(5)));
+            authenticate(OTHER); requestBooking(booking(START.plusDays(5)));
         });
         assertThat(result.getFirst()).isEqualTo("success"); assertThat(result.get(1)).isIn("success", "invalid");
         assertThat(equipment.findById(1L).orElseThrow().getCondition()).isEqualTo(EquipmentCondition.MAINTENANCE);

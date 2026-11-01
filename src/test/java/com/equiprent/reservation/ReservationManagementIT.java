@@ -89,10 +89,12 @@ class ReservationManagementIT {
     private User bob;
     private Equipment notebook;
 
+    private Long requestBooking(ReservationForm form) { return creation.create(form,creation.quote(form)); }
+
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         alice = users.saveAndFlush(new User("Alice", CLIENT, "hash-privado", UserRole.CLIENTE, CREATED));
         bob = users.saveAndFlush(new User("Bob privado", OTHER, "hash-privado", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-privado", UserRole.ADMIN, CREATED));
@@ -212,7 +214,7 @@ class ReservationManagementIT {
         assertThat(history.getLast().getOccurredAt()).isEqualTo(NOW);
         assertThat(reservations.hasBlockingReservation(1L, START, START.plusDays(2), LocalDate.of(2026, 11, 1))).isFalse();
         authenticate(CLIENT);
-        creation.create(booking());
+        requestBooking(booking());
         assertThat(reservations.count()).isEqualTo(3);
         assertEventCount(4);
     }
@@ -265,7 +267,7 @@ class ReservationManagementIT {
         changeState(1L, status);
         mvc.perform(cancelRequest(1, false)).andExpect(status().isOk())
                 .andExpect(model().attributeHasErrors("cancellationForm"))
-                .andExpect(content().string(containsString("Somente reservas no estado Reservada")))
+                .andExpect(content().string(containsString("Somente solicitações pendentes ou reservas ainda não retiradas")))
                 .andExpect(content().string(not(containsString("Confirmar cancelamento"))));
         assertThat(reservations.findById(1L).orElseThrow().getStatus().name()).isEqualTo(status);
         assertEventCount(2);
@@ -418,13 +420,13 @@ class ReservationManagementIT {
     void shouldSerializeCancellationWithNewBookingOfSamePeriod() throws Exception {
         var results = race(() -> cancelAs(CLIENT, false), () -> {
             authenticate(OTHER);
-            try { creation.create(booking()); return "created"; }
+            try { requestBooking(booking()); return "created"; }
             catch (ReservationRuleException exception) { return "unavailable"; }
         });
         assertThat(results.getFirst()).isEqualTo("cancelled");
         assertThat(results.get(1)).isIn("created", "unavailable");
         long expected = results.get(1).equals("created") ? 1 : 0;
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM reservation WHERE equipment_id=1 AND status='RESERVED'", Long.class)).isEqualTo(expected);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM reservation WHERE equipment_id=1 AND status='REQUESTED'", Long.class)).isEqualTo(expected);
         assertThat(reservations.count()).isEqualTo(2 + expected);
         assertEventCount(3 + expected);
     }

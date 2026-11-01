@@ -64,7 +64,7 @@ class MarketplaceAccessIT {
 
     @BeforeEach void prepare() {
         SecurityContextHolder.clearContext();
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
+        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
         jdbc.update("DELETE FROM company WHERE code <> 'INITIAL'");
         jdbc.update("UPDATE company SET name='Empresa A', active=true, city='Curitiba', state='PR' WHERE id=1");
         companyB = jdbc.queryForObject("INSERT INTO company(code,name,city,state) VALUES ('B','Empresa B','Campinas','SP') RETURNING id", Long.class);
@@ -209,7 +209,9 @@ class MarketplaceAccessIT {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM company_membership WHERE user_id=?",Long.class,created.getId())).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM company_customer WHERE user_id=?",Long.class,created.getId())).isZero();
         var loggedIn = login(session,created.getEmail(),CatalogJourney.reservationUrl(itemA.getId(),filter));
-        mvc.perform(post("/reservas").session(loggedIn).with(csrf()).param("equipmentId",itemA.getId().toString())
+        var quotePage=mvc.perform(get(URI.create(CatalogJourney.reservationUrl(itemA.getId(),filter))).session(loggedIn)).andExpect(status().isOk()).andReturn();
+        var quoted=(ReservationForm)quotePage.getModelAndView().getModel().get("reservationForm");
+        mvc.perform(post("/reservas").session(loggedIn).with(csrf()).param("quoteToken",quoted.getQuoteToken()).param("equipmentId",itemA.getId().toString())
                         .param("startDate",filter.getStartDate().toString()).param("endDate",filter.getEndDate().toString()))
                 .andExpect(status().is3xxRedirection());
         assertThat(reservations.count()).isEqualTo(1);

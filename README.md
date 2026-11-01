@@ -11,7 +11,8 @@ Sistema web de aluguel de equipamentos com busca pública entre empresas, cadast
 | Pesquisar equipamentos e disponibilidade sem login | Cadastrar equipamentos e clientes |
 | Comparar empresas, cidade/UF, diária e total estimado | Editar a cidade e UF da própria empresa |
 | Criar uma conta pessoal e continuar a pesquisa após entrar | Consultar somente os dados administrativos da própria empresa |
-| Estimar diárias e confirmar reservas | Gerenciar catálogo, diária e condição física |
+| Solicitar reservas sem bloquear a disponibilidade | Gerenciar catálogo, diária e condição física |
+| Aceitar propostas de diária e condições | Propor valores, aprovar ou recusar solicitações |
 | Consultar somente suas reservas e histórico | Consultar reservas da própria empresa |
 | Cancelar reservas ainda não retiradas | Cancelar com motivo e registrar retirada/devolução |
 | Usar a mesma conta em diferentes empresas | Acompanhar atrasos e compromissos afetados |
@@ -58,7 +59,8 @@ Java 21, Spring Boot, MVC, Thymeleaf, Bootstrap local, PostgreSQL 17, JPA/JDBC e
 - Controllers recebem formulários com campos permitidos; services aplicam autorização, regras e transações.
 - Flyway controla o esquema; Hibernate apenas o valida. Não há consultas JPA durante a renderização fora do service.
 - Datas são inclusivas em `America/Sao_Paulo`; valores usam `BigDecimal` e preservam a diária contratada.
-- Bloqueios no banco impedem confirmações sobrepostas. Reserva e evento são gravados na mesma transação.
+- Solicitações aguardam aprovação e não bloqueiam o catálogo. A empresa só confirma a versão aceita pelo cliente, revalidando a disponibilidade sob bloqueio no banco; estado e evento são atômicos.
+- Propostas preservam autoria, valores, condições e aceite por versão. A aprovação fixa o acordo, sem reescrever a estimativa inicial.
 - Senhas usam PBKDF2; autenticação por sessão e ações de alteração protegidas por CSRF.
 - Contas, equipamentos e reservas com histórico são preservados. Alterar a diária não reescreve contratos anteriores.
 
@@ -76,6 +78,6 @@ A [integração contínua](.github/workflows/ci.yml) executa a suíte em JDK 21 
 
 ## Evolução do produto
 
-A separação de empresas, busca pública, localização e cadastro pessoal de clientes estão implementados. Hoje o cliente confirma a reserva diretamente. Solicitações sujeitas à aprovação e negociação de valores entram na M3; chat, na M4.
+A separação de empresas, busca pública, localização, cadastro pessoal, solicitações, propostas versionadas e aprovação pela empresa estão implementados até a M3. O chat por solicitação será apresentado para aprovação na M4.
 
 Ainda não há confirmação de e-mail, recuperação de senha, pagamento, multa automática, cadastro público de empresas, carrinho ou edição do período de uma reserva. A publicação depende de configuração e operação próprias. O [planejamento](PLANEJAMENTO.md) distingue o comportamento atual das próximas entregas.

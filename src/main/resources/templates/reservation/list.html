@@ -6,7 +6,7 @@
 <main id="conteudo" tabindex="-1" class="container py-5">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <h1 class="h2 mb-0" th:text="${administrative ? 'Todas as reservas' : 'Minhas reservas'}"></h1>
-        <a th:unless="${administrative}" th:href="@{/equipamentos}" class="btn btn-primary">Encontrar equipamento</a>
+        <a th:unless="${administrative}" th:href="@{/catalogo}" class="btn btn-primary">Encontrar equipamento</a>
     </div>
     <form th:action="@{${basePath}}" th:object="${reservationFilter}" method="get" class="card p-4 mb-4" aria-label="Filtros de reservas">
         <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert" tabindex="-1" autofocus>
@@ -69,10 +69,11 @@
                 <td th:if="${administrative}"><span th:text="${reservation.customerName}"></span><small class="d-block text-secondary text-break" th:text="${reservation.customerEmail}"></small></td>
                 <td><span class="text-nowrap" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></span><span class="d-block text-nowrap" th:text="|até ${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}|"></span></td>
                 <td><span th:text="${reservation.status.label}"></span>
+                    <small th:if="${reservation.approvalExpired}" class="d-block text-danger">Prazo de aprovação encerrado</small>
                     <small th:if="${reservation.overdue}" class="d-block text-danger">Devolução atrasada</small>
                     <small th:if="${reservation.returnedLate}" class="d-block text-secondary">Devolvida com atraso</small>
                 </td>
-                <td class="text-nowrap" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></td>
+                <td><span class="text-nowrap" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></span><small class="d-block text-secondary" th:text="${reservation.contracted ? 'Valor contratado' : 'Estimativa inicial'}"></small></td>
             </tr></tbody>
         </table></div>
     </div>

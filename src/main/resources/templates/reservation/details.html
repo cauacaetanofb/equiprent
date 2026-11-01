@@ -5,7 +5,7 @@
 <header th:replace="~{fragments/layout :: header}"></header>
 <main id="conteudo" tabindex="-1" class="container py-5" th:with="reservation=${details.summary}">
     <a th:href="@{${basePath}}">Voltar às reservas</a>
-    <h1 class="h2 mt-4" th:text="|Reserva #${reservation.id}|"></h1>
+    <h1 class="h2 mt-4" th:text="${reservation.contracted ? 'Reserva #' + reservation.id : 'Solicitação #' + reservation.id}"></h1>
     <p class="lead" th:text="|${reservation.equipmentName} · ${reservation.assetCode}|"></p>
     <p class="text-secondary" th:text="${reservation.companyName}"></p>
     <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
@@ -23,14 +23,14 @@
         </div>
     </div>
     <section class="card p-4 mb-4" aria-labelledby="detalhes-titulo">
-        <h2 id="detalhes-titulo" class="h5">Dados da reserva</h2>
+        <h2 id="detalhes-titulo" class="h5" th:text="${reservation.contracted ? 'Dados da reserva' : 'Dados da solicitação'}"></h2>
         <dl class="row mb-0">
             <dt class="col-sm-4">Situação</dt><dd class="col-sm-8" th:text="${reservation.status.label}"></dd>
             <dt th:if="${administrative}" class="col-sm-4">Cliente</dt><dd th:if="${administrative}" class="col-sm-8"><span th:text="${reservation.customerName}"></span><small class="d-block text-secondary text-break" th:text="${reservation.customerEmail}"></small></dd>
             <dt class="col-sm-4">Início</dt><dd class="col-sm-8" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></dd>
             <dt class="col-sm-4">Fim (inclusive)</dt><dd class="col-sm-8" th:text="${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}"></dd>
-            <dt class="col-sm-4">Diária contratada</dt><dd class="col-sm-8" th:text="|R$ ${#numbers.formatDecimal(reservation.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></dd>
-            <dt class="col-sm-4">Total estimado</dt><dd class="col-sm-8" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></dd>
+            <dt class="col-sm-4" th:text="${reservation.contracted ? 'Diária contratada' : 'Diária da estimativa inicial'}"></dt><dd class="col-sm-8" th:text="|R$ ${#numbers.formatDecimal(reservation.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></dd>
+            <dt class="col-sm-4" th:text="${reservation.contracted ? 'Total contratado' : 'Total da estimativa inicial'}"></dt><dd class="col-sm-8" th:text="|R$ ${#numbers.formatDecimal(reservation.total, 1, 'POINT', 2, 'COMMA')}|"></dd>
             <dt class="col-sm-4">Registrada em</dt><dd class="col-sm-8" th:text="|${#temporals.format(details.createdAt, 'dd/MM/yyyy HH:mm')} (São Paulo)|"></dd>
             <dt th:if="${details.pickedUpAt != null}" class="col-sm-4">Retirada em</dt><dd th:if="${details.pickedUpAt != null}" class="col-sm-8" th:text="|${#temporals.format(details.pickedUpAt, 'dd/MM/yyyy HH:mm')} (São Paulo)|"></dd>
             <dt th:if="${details.returnedAt != null}" class="col-sm-4">Devolvida em</dt><dd th:if="${details.returnedAt != null}" class="col-sm-8" th:text="|${#temporals.format(details.returnedAt, 'dd/MM/yyyy HH:mm')} (São Paulo)|"></dd>
@@ -62,13 +62,13 @@
         <p th:text="|${#temporals.format(details.cancelledAt, 'dd/MM/yyyy HH:mm')} (São Paulo)|"></p>
         <p th:if="${details.cancelledBy != null}">Cancelada por <strong th:text="${details.cancelledBy}"></strong>.</p>
         <p class="text-break" style="white-space: pre-wrap" th:text="${details.cancellationReason != null ? details.cancellationReason : 'Motivo não informado.'}"></p>
-        <p class="small text-secondary mb-0">Os dados e valores contratados foram preservados para consulta.</p>
+        <p class="small text-secondary mb-0">Os dados, valores e histórico foram preservados para consulta.</p>
     </section>
-    <section th:if="${reservation.status.name() == 'RESERVED'}" class="card p-4 mb-4" aria-labelledby="cancelar-titulo">
-        <h2 id="cancelar-titulo" class="h5">Cancelar esta reserva</h2>
+    <section th:if="${reservation.status.name() == 'RESERVED' or (reservation.status.name() == 'REQUESTED' and !administrative)}" class="card p-4 mb-4" aria-labelledby="cancelar-titulo">
+        <h2 id="cancelar-titulo" class="h5" th:text="${reservation.contracted ? 'Cancelar esta reserva' : 'Cancelar esta solicitação'}"></h2>
         <details th:open="${#fields.hasErrors('cancellationForm.*')}">
         <summary class="text-danger">Revisar cancelamento</summary>
-        <p class="text-secondary mt-3">O cancelamento é definitivo e libera este período. Para alugar novamente, será necessário criar outra reserva.</p>
+        <p class="text-secondary mt-3">O cancelamento é definitivo. Para tentar alugar novamente, será necessário enviar outra solicitação.</p>
         <form th:action="@{${basePath + '/' + reservation.id + '/cancelar'}}" th:object="${cancellationForm}" method="post">
             <label for="reason" class="form-label" th:text="${administrative ? 'Motivo (obrigatório)' : 'Motivo (opcional)'}"></label>
             <textarea th:field="*{reason}" class="form-control mb-3" rows="3" maxlength="1000" th:required="${administrative}" th:attr="aria-invalid=${#fields.hasErrors('reason')}" aria-describedby="reason-error"></textarea>
@@ -77,11 +77,12 @@
         </form>
         </details>
     </section>
+    <th:block th:replace="~{reservation/negotiation :: negotiation}"></th:block>
     <section class="card p-4" aria-labelledby="historico-titulo">
         <h2 id="historico-titulo" class="h5">Linha do tempo</h2>
         <ol class="list-group list-group-flush">
             <li th:each="event : ${details.timeline}" class="list-group-item px-0">
-                <p class="mb-1"><strong th:text="${event.previousStatus == null ? 'Reserva criada' : event.previousStatus.label + ' → ' + event.newStatus.label}"></strong></p>
+                <p class="mb-1"><strong th:text="${event.previousStatus == null ? (event.newStatus.name() == 'REQUESTED' ? 'Solicitação criada' : 'Reserva criada') : event.previousStatus.label + ' → ' + event.newStatus.label}"></strong></p>
                 <p class="small text-secondary mb-1"><span th:text="|${#temporals.format(event.occurredAt, 'dd/MM/yyyy HH:mm:ss')} (São Paulo)|"></span> · <span th:text="${event.actorName}"></span></p>
                 <p th:if="${event.note != null}" class="text-break mb-1" style="white-space: pre-wrap" th:text="${event.note}"></p>
             </li>

@@ -69,6 +69,23 @@ public class Reservation {
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
 
+    @Column(name = "request_token", unique = true, updatable = false)
+    private java.util.UUID requestToken;
+    @Column(name = "current_offer_version")
+    private Integer currentOfferVersion;
+    @Column(name = "contract_offer_version")
+    private Integer contractOfferVersion;
+    @Column(name = "contract_daily_rate", precision = 12, scale = 2)
+    private BigDecimal contractDailyRate;
+    @Column(name = "contract_amount", precision = 14, scale = 2)
+    private BigDecimal contractAmount;
+    @Column(name = "contract_terms", length = 2000)
+    private String contractTerms;
+    @Column(name = "approved_at")
+    private Instant approvedAt;
+    @Column(name = "rejected_at")
+    private Instant rejectedAt;
+
     protected Reservation() {
     }
 
@@ -84,7 +101,45 @@ public class Reservation {
         this.dailyRateSnapshot = Objects.requireNonNull(dailyRateSnapshot).setScale(2, RoundingMode.UNNECESSARY);
         this.estimatedAmount = Objects.requireNonNull(estimatedAmount).setScale(2, RoundingMode.UNNECESSARY);
         this.createdAt = Objects.requireNonNull(createdAt);
+        this.contractDailyRate = this.dailyRateSnapshot;
+        this.contractAmount = this.estimatedAmount;
     }
+
+    public static Reservation request(User customer, Equipment equipment, ReservationQuote quote, Instant now) {
+        var reservation = new Reservation(customer, equipment, quote.startDate(), quote.endDate(), quote.dailyRate(), quote.total(), now);
+        reservation.status = ReservationStatus.REQUESTED;
+        reservation.requestToken = quote.token();
+        reservation.currentOfferVersion = 1;
+        reservation.contractDailyRate = null;
+        reservation.contractAmount = null;
+        return reservation;
+    }
+
+    public void requireRequested() {
+        if (status != ReservationStatus.REQUESTED) throw new ReservationRuleException("Esta solicitação não está mais aguardando aprovação.");
+    }
+    public void nextOffer() { requireRequested(); currentOfferVersion = Math.addExact(currentOfferVersion, 1); }
+    public void approve(ReservationOffer offer, Instant now) {
+        requireRequested();
+        if (!Objects.equals(currentOfferVersion, offer.getVersion()) || offer.getAcceptedAt() == null
+                || !customer.getId().equals(offer.getAcceptedBy().getId())) {
+            throw new ReservationRuleException("A proposta atual precisa do aceite do cliente.");
+        }
+        contractOfferVersion = offer.getVersion(); contractDailyRate = offer.getDailyRate();
+        contractAmount = offer.getAmount(); contractTerms = offer.getTerms();
+        approvedAt = now; status = ReservationStatus.RESERVED;
+    }
+    public void reject(Instant now) { requireRequested(); rejectedAt = now; status = ReservationStatus.REJECTED; }
+    public Integer getCurrentOfferVersion() { return currentOfferVersion; }
+    public Integer getContractOfferVersion() { return contractOfferVersion; }
+    public BigDecimal getContractDailyRate() { return contractDailyRate; }
+    public BigDecimal getContractAmount() { return contractAmount; }
+    public String getContractTerms() { return contractTerms; }
+    public Instant getApprovedAt() { return approvedAt; }
+    public Instant getRejectedAt() { return rejectedAt; }
+    public java.util.UUID getRequestToken() { return requestToken; }
+    public BigDecimal displayDailyRate() { return contractDailyRate != null ? contractDailyRate : dailyRateSnapshot; }
+    public BigDecimal displayTotal() { return contractAmount != null ? contractAmount : estimatedAmount; }
 
     public Long getId() {
         return id;
@@ -92,8 +147,8 @@ public class Reservation {
 
     // Chamado pelo service somente depois de bloquear equipamento e reserva.
     public void cancel(Instant cancelledAt) {
-        if (status != ReservationStatus.RESERVED) {
-            throw new ReservationRuleException("Somente reservas no estado Reservada podem ser canceladas.");
+        if (status != ReservationStatus.RESERVED && status != ReservationStatus.REQUESTED) {
+            throw new ReservationRuleException("Somente solicitações pendentes ou reservas ainda não retiradas podem ser canceladas.");
         }
         this.cancelledAt = Objects.requireNonNull(cancelledAt);
         this.status = ReservationStatus.CANCELLED;

@@ -74,7 +74,7 @@ class CompanyIT {
 
     @BeforeEach void prepare() {
         SecurityContextHolder.clearContext();
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
+        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
         jdbc.update("DELETE FROM company WHERE code <> 'INITIAL'");
         jdbc.update("UPDATE company SET active=true, name='Empresa inicial' WHERE id=1");
         companyB = jdbc.queryForObject("INSERT INTO company(code,name) VALUES ('B','Empresa B') RETURNING id", Long.class);
@@ -89,6 +89,8 @@ class CompanyIT {
         reservationA = reserve(client, itemA);
         reservationB = reserve(privateClient, itemB);
     }
+    private Long request(ReservationForm form) { return booking.create(form,booking.quote(form)); }
+
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
 
     @Test void shouldScopeListsCountsAndSearchesToAdminCompany() {
@@ -184,8 +186,8 @@ class CompanyIT {
         assertThat(users.findById(client.getId()).orElseThrow().isActive()).isTrue();
         auth(client);
         assertThat(management.details(reservationA.getId(), false)).isNotNull();
-        assertThatThrownBy(() -> booking.create(form(itemA))).isInstanceOf(AccessDeniedException.class);
-        var id = booking.create(form(itemB));
+        assertThatThrownBy(() -> request(form(itemA))).isInstanceOf(AccessDeniedException.class);
+        var id = request(form(itemB));
         assertThat(reservations.findById(id).orElseThrow().getCompanyId()).isEqualTo(companyB);
         assertThat(management.search(new ReservationFilter(), false).getTotalElements()).isEqualTo(2);
         auth(adminA);
@@ -194,7 +196,7 @@ class CompanyIT {
 
     @Test void shouldKeepPrivateReservationsOfSharedCustomerHiddenFromOtherCompany() {
         auth(client);
-        long id = booking.create(form(itemB));
+        long id = request(form(itemB));
         auth(adminA);
         assertThatThrownBy(() -> management.details(id, true)).isInstanceOf(ReservationNotFoundException.class);
         assertThat(management.search(new ReservationFilter(), true).getTotalElements()).isEqualTo(1);
@@ -205,7 +207,7 @@ class CompanyIT {
         auth(client);
         assertThat(equipmentService.search(new EquipmentFilter()).getContent()).extracting(EquipmentSummary::id).containsExactly(itemB.getId());
         assertThatThrownBy(() -> equipmentService.getDetails(itemA.getId())).isInstanceOf(EquipmentNotFoundException.class);
-        assertThatThrownBy(() -> booking.create(form(itemA))).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> request(form(itemA))).isInstanceOf(AccessDeniedException.class);
         assertThat(management.details(reservationA.getId(), false)).isNotNull();
     }
 

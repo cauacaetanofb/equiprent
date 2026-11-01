@@ -9,6 +9,6 @@ public record ReservationConfirmation(Long id, String equipmentName, String asse
     public static ReservationConfirmation from(Reservation reservation) {
         return new ReservationConfirmation(reservation.getId(), reservation.getEquipment().getName(),
                 reservation.getEquipment().getAssetCode(), reservation.getStartDate(), reservation.getEndDate(),
-                reservation.getDailyRateSnapshot(), reservation.getEstimatedAmount(), reservation.getStatus());
+                reservation.displayDailyRate(), reservation.displayTotal(), reservation.getStatus());
     }
 }

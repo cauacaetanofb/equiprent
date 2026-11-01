@@ -6,6 +6,10 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 
 public class ReservationForm {
+    @jakarta.validation.constraints.Size(max = 36, message = "Consulte novamente a estimativa.")
+    private String quoteToken;
+    public String getQuoteToken() { return quoteToken; }
+    public void setQuoteToken(String quoteToken) { this.quoteToken=quoteToken; }
     @NotNull(message = "Selecione o equipamento.")
     @Positive(message = "Selecione um equipamento válido.")
     private Long equipmentId;

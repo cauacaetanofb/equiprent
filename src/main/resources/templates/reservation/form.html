@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Nova reserva')}"></head>
+<head th:replace="~{fragments/layout :: head('Solicitar reserva')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
 <main id="conteudo" tabindex="-1" class="container py-5">
     <a th:href="@{${catalogBackUrl}}">Voltar aos resultados</a>
-    <h1 class="h2 mt-4">Nova reserva</h1>
+    <h1 class="h2 mt-4">Solicitar reserva</h1>
+    <p class="alert alert-info">O envio aguarda aprovação da empresa e não garante disponibilidade. Somente a aprovação confirma a reserva.</p>
     <p th:if="${equipment != null}" class="lead" th:text="|${equipment.name} · ${equipment.assetCode}|"></p>
     <p th:if="${equipment != null}" class="text-secondary" th:text="${equipment.companyName}"></p>
     <p class="text-secondary">O primeiro e o último dia contam no aluguel. Escolha um período de até 365 diárias.</p>
@@ -27,18 +28,19 @@
         </div>
     </form>
     <section th:if="${estimate != null}" class="card p-4" aria-labelledby="estimativa-titulo">
-        <h2 id="estimativa-titulo" class="h4">Confira antes de confirmar</h2>
+        <h2 id="estimativa-titulo" class="h4">Confira antes de solicitar</h2>
         <p th:text="|${estimate.equipmentName} · ${estimate.assetCode}|"></p>
         <p><strong th:text="${#temporals.format(reservationForm.startDate, 'dd/MM/yyyy')}"></strong> até
             <strong th:text="${#temporals.format(reservationForm.endDate, 'dd/MM/yyyy')}"></strong></p>
         <p th:text="|${estimate.days} diária(s) × R$ ${#numbers.formatDecimal(estimate.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></p>
         <p class="h3" th:text="|Total estimado: R$ ${#numbers.formatDecimal(estimate.total, 1, 'POINT', 2, 'COMMA')}|"></p>
-        <p class="text-secondary">Esta consulta não segura o equipamento. A disponibilidade e o valor vigente serão conferidos novamente ao confirmar. Se mudar as datas acima, consulte uma nova estimativa.</p>
+        <p class="text-secondary">Ao solicitar, você concorda com esta diária e este total para as datas mostradas. Se a empresa enviar novas condições, você precisará aceitá-las. Esta consulta não segura o equipamento. Se mudar as datas, consulte uma nova estimativa.</p>
         <form th:action="@{/reservas}" method="post">
+            <input type="hidden" name="quoteToken" th:value="${reservationForm.quoteToken}">
             <input type="hidden" name="equipmentId" th:value="${reservationForm.equipmentId}">
             <input type="hidden" name="startDate" th:value="${reservationForm.startDate}">
             <input type="hidden" name="endDate" th:value="${reservationForm.endDate}">
-            <button class="btn btn-success" type="submit">Confirmar reserva deste período</button>
+            <button class="btn btn-success" type="submit">Solicitar reserva deste período</button>
         </form>
     </section>
 </main>

@@ -36,9 +36,9 @@
                     <p class="fw-semibold">Disponível para as datas consultadas</p>
                     <p th:text="|${estimate.days} diária(s) × R$ ${#numbers.formatDecimal(estimate.dailyRate, 1, 'POINT', 2, 'COMMA')}|"></p>
                     <p class="h4" th:text="|Total estimado: R$ ${#numbers.formatDecimal(estimate.total, 1, 'POINT', 2, 'COMMA')}|"></p>
-                    <p class="small text-secondary">A consulta não segura o equipamento. Disponibilidade e preço serão conferidos novamente antes da confirmação.</p>
+                    <p class="small text-secondary">A consulta e a solicitação não seguram o equipamento. Somente a aprovação da empresa confirma a reserva, após verificar a disponibilidade e o acordo aceito.</p>
                     <p th:if="${isAdmin}" class="mb-0">Use uma conta de cliente para fazer uma reserva.</p>
-                    <a th:unless="${isAdmin}" class="btn btn-primary w-100" th:href="@{${filter.continueUrl(item.id)}}" th:text="${signedIn ? 'Continuar para a reserva' : 'Entrar para continuar'}"></a>
+                    <a th:unless="${isAdmin}" class="btn btn-primary w-100" th:href="@{${filter.continueUrl(item.id)}}" th:text="${signedIn ? 'Continuar para solicitar' : 'Entrar para continuar'}"></a>
                 </div>
             </div>
         </section>

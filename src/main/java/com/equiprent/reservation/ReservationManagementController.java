@@ -16,7 +16,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class ReservationManagementController {
     private final ReservationManagementService reservations;
     private final ReservationOperationsService operations;
-    public ReservationManagementController(ReservationManagementService reservations, ReservationOperationsService operations) {
+    private final ReservationNegotiationService negotiation;
+    public ReservationManagementController(ReservationManagementService reservations, ReservationOperationsService operations,
+                                          ReservationNegotiationService negotiation) {
+        this.negotiation=negotiation;
         this.reservations = reservations;
         this.operations = operations;
     }
@@ -27,6 +30,12 @@ public class ReservationManagementController {
     void cancellation(WebDataBinder binder) { binder.setAllowedFields("reason"); }
     @InitBinder("returnForm")
     void returnForm(WebDataBinder binder) { binder.setAllowedFields("maintenance"); }
+    @InitBinder("offerForm")
+    void offer(WebDataBinder binder) { binder.setAllowedFields("version","dailyRate","terms"); }
+    @InitBinder("offerVersionForm")
+    void offerVersion(WebDataBinder binder) { binder.setAllowedFields("version"); }
+    @InitBinder("rejectionForm")
+    void rejection(WebDataBinder binder) { binder.setAllowedFields("reason"); }
 
     @GetMapping("/reservas")
     public String mine(@Valid @ModelAttribute ReservationFilter reservationFilter, BindingResult binding, Model model) {
@@ -52,12 +61,24 @@ public class ReservationManagementController {
     }
 
     @GetMapping("/reservas/{id}")
-    public String mineDetails(@PathVariable Long id, Model model) { return details(id, model, false); }
+    public String mineDetails(@PathVariable Long id, @RequestParam(defaultValue="0") int offerPage, Model model) { return details(id, model, false, offerPage); }
     @GetMapping("/admin/reservas/{id}")
-    public String adminDetails(@PathVariable Long id, Model model) { return details(id, model, true); }
+    public String adminDetails(@PathVariable Long id, @RequestParam(defaultValue="0") int offerPage, Model model) { return details(id, model, true, offerPage); }
 
     private String details(Long id, Model model, boolean administrative) {
+        return details(id,model,administrative,0);
+    }
+    private String details(Long id, Model model, boolean administrative, int offerPage) {
         model.addAttribute("details", reservations.details(id, administrative));
+        var data=negotiation.details(id,administrative,offerPage);
+        model.addAttribute("negotiation",data);
+        if (!model.containsAttribute("offerForm")) {
+            var form=new OfferForm();
+            if (data.current()!=null) { form.setVersion(data.current().version()); form.setDailyRate(data.current().dailyRate()); form.setTerms(data.current().terms()); }
+            model.addAttribute("offerForm",form);
+        }
+        if (!model.containsAttribute("offerVersionForm")) model.addAttribute("offerVersionForm",new OfferVersionForm());
+        if (!model.containsAttribute("rejectionForm")) model.addAttribute("rejectionForm",new RejectionForm());
         if (!model.containsAttribute("cancellationForm")) model.addAttribute("cancellationForm", new CancellationForm());
         if (!model.containsAttribute("returnForm")) model.addAttribute("returnForm", new ReturnForm());
         navigation(model, administrative);
@@ -82,7 +103,7 @@ public class ReservationManagementController {
         if (!binding.hasErrors()) {
             try {
                 reservations.cancel(id, form, administrative);
-                redirect.addFlashAttribute("success", "Reserva cancelada. O período foi liberado.");
+                redirect.addFlashAttribute("success", "Cancelamento registrado. Nenhum período permanece bloqueado por este registro.");
                 return "redirect:" + (administrative ? "/admin/reservas/" : "/reservas/") + id;
             } catch (ReservationRuleException exception) {
                 binding.reject("state", exception.getMessage());
@@ -96,6 +117,43 @@ public class ReservationManagementController {
     private void navigation(Model model, boolean administrative) {
         model.addAttribute("administrative", administrative);
         model.addAttribute("basePath", administrative ? "/admin/reservas" : "/reservas");
+    }
+
+    @PostMapping("/admin/reservas/{id}/propor")
+    public String propose(@PathVariable Long id, @Valid @ModelAttribute OfferForm offerForm, BindingResult binding,
+                          Model model, RedirectAttributes redirect) {
+        reservations.details(id,true);
+        if (!binding.hasErrors()) return negotiate(id,true,model,redirect,() -> negotiation.propose(id,offerForm),"Proposta enviada. Aguarde o aceite do cliente.");
+        return details(id,model,true);
+    }
+    @PostMapping("/reservas/{id}/aceitar")
+    public String accept(@PathVariable Long id, @Valid @ModelAttribute OfferVersionForm offerVersionForm, BindingResult binding,
+                         Model model, RedirectAttributes redirect) {
+        reservations.details(id,false);
+        if (!binding.hasErrors()) return negotiate(id,false,model,redirect,() -> negotiation.accept(id,offerVersionForm),"Proposta aceita. Aguarde a aprovação da empresa.");
+        return details(id,model,false);
+    }
+    @PostMapping("/admin/reservas/{id}/aprovar")
+    public String approve(@PathVariable Long id, @Valid @ModelAttribute OfferVersionForm offerVersionForm, BindingResult binding,
+                          Model model, RedirectAttributes redirect) {
+        reservations.details(id,true);
+        if (!binding.hasErrors()) return negotiate(id,true,model,redirect,() -> negotiation.approve(id,offerVersionForm),"Reserva aprovada e confirmada para o período informado.");
+        return details(id,model,true);
+    }
+    @PostMapping("/admin/reservas/{id}/recusar")
+    public String reject(@PathVariable Long id, @Valid @ModelAttribute RejectionForm rejectionForm, BindingResult binding,
+                         Model model, RedirectAttributes redirect) {
+        reservations.details(id,true);
+        if (!binding.hasErrors()) return negotiate(id,true,model,redirect,() -> negotiation.reject(id,rejectionForm),"Solicitação recusada. O motivo ficou registrado no histórico.");
+        return details(id,model,true);
+    }
+    private String negotiate(Long id, boolean admin, Model model, RedirectAttributes redirect, Runnable action, String message) {
+        try {
+            action.run(); redirect.addFlashAttribute("success",message);
+            return "redirect:"+(admin ? "/admin/reservas/" : "/reservas/")+id;
+        } catch (ReservationRuleException exception) { model.addAttribute("operationError",exception.getMessage()); }
+        catch (TransientDataAccessException exception) { model.addAttribute("operationError","Não foi possível concluir agora. Atualize a página e tente novamente."); }
+        return details(id,model,admin);
     }
 
     @PostMapping("/admin/reservas/{id}/retirar")

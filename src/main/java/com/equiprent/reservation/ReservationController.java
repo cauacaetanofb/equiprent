@@ -26,7 +26,7 @@ public class ReservationController {
     }
 
     @InitBinder("reservationForm")
-    void bind(WebDataBinder binder) { binder.setAllowedFields("equipmentId", "startDate", "endDate"); }
+    void bind(WebDataBinder binder) { binder.setAllowedFields("equipmentId", "startDate", "endDate", "quoteToken"); }
 
     @ModelAttribute
     void dates(Model model, HttpServletRequest request) {
@@ -35,8 +35,10 @@ public class ReservationController {
     }
 
     @GetMapping("/nova")
-    public String form(@ModelAttribute ReservationForm reservationForm, BindingResult binding, Model model) {
+    public String form(@ModelAttribute ReservationForm reservationForm, BindingResult binding, Model model, HttpServletRequest request) {
         reservations.requireCustomer();
+        // A consulta sempre gera uma nova estimativa; tokens recebidos na URL não são reutilizados.
+        reservationForm.setQuoteToken(null);
         if (reservationForm.getEquipmentId() == null || reservationForm.getEquipmentId() <= 0) {
             binding.rejectValue("equipmentId", "equipment", "Selecione um equipamento no catálogo.");
         } else {
@@ -45,7 +47,10 @@ public class ReservationController {
         if (!binding.hasErrors() && (reservationForm.getStartDate() != null || reservationForm.getEndDate() != null)) {
             try {
                 period.days(reservationForm.getStartDate(), reservationForm.getEndDate());
-                model.addAttribute("estimate", reservations.estimate(reservationForm));
+                var quote=reservations.quote(reservationForm);
+                ReservationQuoteSession.save(request,quote);
+                reservationForm.setQuoteToken(quote.token().toString());
+                model.addAttribute("estimate", quote.estimate());
             } catch (ReservationRuleException exception) {
                 binding.reject("unavailable", exception.getMessage());
             }
@@ -54,15 +59,18 @@ public class ReservationController {
     }
 
     @PostMapping
-    public String create(@Valid @ModelAttribute ReservationForm reservationForm, BindingResult binding) {
+    public String create(@Valid @ModelAttribute ReservationForm reservationForm, BindingResult binding,
+                         HttpServletRequest request, org.springframework.web.servlet.mvc.support.RedirectAttributes redirect) {
         reservations.requireCustomer();
         if (!binding.hasErrors()) {
             try {
-                return "redirect:/reservas/" + reservations.create(reservationForm) + "/confirmacao";
+                var id=reservations.create(reservationForm,ReservationQuoteSession.get(request,reservationForm.getQuoteToken()));
+                redirect.addFlashAttribute("success","Solicitação registrada. Confira a situação e a proposta abaixo.");
+                return "redirect:/reservas/" + id;
             } catch (ReservationRuleException exception) {
                 binding.reject("unavailable", exception.getMessage());
             } catch (TransientDataAccessException exception) {
-                binding.reject("retry", "Não foi possível confirmar agora. Consulte a estimativa e tente novamente.");
+                binding.reject("retry", "Não foi possível solicitar agora. Consulte a estimativa e tente novamente.");
             }
         }
         return "reservation/form";

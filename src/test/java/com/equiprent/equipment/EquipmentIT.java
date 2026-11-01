@@ -82,7 +82,7 @@ class EquipmentIT {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        jdbc.execute("TRUNCATE reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-ficticio", UserRole.ADMIN, CREATED));
         customer = users.saveAndFlush(new User("Cliente privado", CLIENT, "hash-ficticio", UserRole.CLIENTE, CREATED));
         item = equipment.saveAndFlush(new Equipment(1L, "NB-001", "Notebook básico", "Descrição da unidade",

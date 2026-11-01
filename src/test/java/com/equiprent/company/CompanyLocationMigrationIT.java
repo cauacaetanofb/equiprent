@@ -34,7 +34,7 @@ class CompanyLocationMigrationIT {
         var events = jdbc.queryForList("SELECT * FROM reservation_event");
         var relationships = jdbc.queryForList("SELECT * FROM company_customer");
         var company = jdbc.queryForMap("SELECT * FROM company WHERE id=1");
-        var flyway = Flyway.configure().dataSource(source).locations("classpath:db/migration").load();
+        var flyway = Flyway.configure().dataSource(source).locations("classpath:db/migration").target("3").load();
         assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
         assertThat(jdbc.queryForList("SELECT * FROM app_user")).isEqualTo(users);
         assertThat(jdbc.queryForList("SELECT * FROM equipment")).isEqualTo(equipment);
