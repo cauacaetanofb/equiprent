@@ -2,11 +2,15 @@
 
 ## 1. Objetivo e limites
 
-Organizar a locação de equipamentos de uma pequena empresa, substituindo controles dispersos por um catálogo de unidades físicas, reservas por período e histórico de retirada e devolução. O projeto deve demonstrar fundamentos de desenvolvimento web, integridade de dados, autorização e testes em entrevistas de estágio e nível júnior.
+Evoluir o EquipRent para um marketplace de aluguel de equipamentos: o cliente pesquisa um equipamento e um período, compara a disponibilidade e a diária de diferentes empresas, envia uma solicitação e conversa com a empresa pelo site. Após a negociação, um administrador da empresa aprova a reserva. Retirada, devolução e histórico continuam fazendo parte do fluxo.
 
-**Entrega atual:** etapas 0 a 8 implementadas: ciclo completo de locação, interface revisada em desktop/360 px, CI configurado e material de portfólio. Perfil `demo` com banco separado, contas fictícias, oito capturas, vídeo com legendas e roteiro de apresentação. Suite aprovada em JDK 21 efetivo, com 276 testes e PostgreSQL, inclusive concorrência. Execução remota do CI deve ser conferida após o push; hospedagem e novas funcionalidades ficam para tarefas específicas.
+**Entrega atual:** etapas 0 a 8 implementadas para uma única empresa por instalação: ciclo completo de locação, interface revisada em desktop/360 px, CI configurado e material de portfólio. Perfil `demo` com banco separado, contas fictícias, oito capturas, vídeo com legendas e roteiro de apresentação. Última validação registrada: suite aprovada em JDK 21 efetivo, com 276 testes e PostgreSQL, inclusive concorrência. Esses resultados pertencem à base atual e não comprovam as funcionalidades futuras do marketplace. Execução remota do CI ainda precisa ser conferida.
 
-### Primeira versão
+**Direção aprovada em 01/11/2026:** planejamento do marketplace, com solicitação sem bloqueio de disponibilidade, aprovação pela empresa, concordância do cliente com mudanças de preço e chat vinculado à solicitação. Esta revisão altera somente este documento. A implementação de código será apresentada para aprovação antes de cada etapa; a publicação online permanece adiada.
+
+**Como ler este documento:** as seções 2 a 6 registram a arquitetura, as regras e as entregas da base existente. As seções 7 a 9 descrevem o destino planejado, ainda não implementado, e identificam decisões que precisam de revisão. Em especial, o ADMIN global e a confirmação direta pelo cliente pertencem ao comportamento atual e serão substituídos no fluxo do marketplace.
+
+### Base implementada — etapas 0 a 8
 
 - Autenticação com perfis `ADMIN` e `CLIENTE`.
 - Cadastro de clientes e equipamentos: nome, descrição, categoria, código individual e diária.
@@ -16,9 +20,9 @@ Organizar a locação de equipamentos de uma pequena empresa, substituindo contr
 - Manutenção, preservação de registros e desativação em vez de exclusão de históricos.
 - Busca, filtros, paginação e interface responsiva em português.
 
-**Fora da primeira versão:** pagamentos, multas automáticas, e-mails, várias empresas, aplicativos móveis, carrinho com vários equipamentos, agendamento de manutenção, prorrogação e reprogramação de reservas. Uma reserva não terá seus dias editados: cancelar e reservar novamente evita reprecificação e transições ambíguas.
+**Limites da base entregue:** não há várias empresas, chat, aprovação de solicitações, pagamentos, multas automáticas, e-mails, aplicativos móveis, carrinho com vários equipamentos, agendamento de manutenção, prorrogação ou reprogramação de reservas. Várias empresas, chat e aprovação passam a integrar o novo planejamento. Os demais itens continuam fora do primeiro ciclo do marketplace, salvo revisão explícita de escopo. Datas de uma solicitação/reserva não serão editadas nesse ciclo: cancelar e solicitar novamente evita alterar silenciosamente as condições negociadas.
 
-## 2. Arquitetura e decisões técnicas
+## 2. Arquitetura e decisões técnicas da base existente
 
 Monólito Spring Boot com Spring MVC e páginas Thymeleaf. Um processo Java e um PostgreSQL. Bootstrap local para o layout, sem build JavaScript obrigatório. Java 21 e Spring Boot 4.1.2, cuja compatibilidade foi confirmada na [documentação oficial](https://docs.spring.io/spring-boot/system-requirements.html) em 27/10/2026.
 
@@ -153,7 +157,7 @@ O construtor monetário usa escala 2 com `RoundingMode.UNNECESSARY`, rejeitando 
 
 A V1 verifica a coerência de cada par de estados em um evento e dos timestamps de cada reserva. Ela ainda não garante a sequência completa entre eventos, um evento para toda alteração, o perfil do autor, disponibilidade ou ausência de reservas sobrepostas. Os testes de persistência não substituem os futuros testes de service, autorização e concorrência. Os SQLs que simulam alterações nos testes servem apenas para validar o modelo.
 
-## 4. Regras de negócio e premissas
+## 4. Regras de negócio e premissas da base existente
 
 ### Período, diárias e dinheiro
 
@@ -200,7 +204,7 @@ O protocolo depende de todas as escritas de negócio passarem pelos services; sc
 - Sem exclusão física de usuários/equipamentos com reservas. Preferir desativação do usuário e `RETIRED` para equipamento. Não apagar reservas nem eventos.
 - Autorização deve existir no servidor; ocultar botões é apenas uma conveniência visual. Evitar colocar dados pessoais, senhas ou formulários completos nos logs.
 
-## 5. Estados da reserva
+## 5. Estados da reserva na base existente
 
 Enums em inglês e rótulos na interface em português:
 
@@ -227,7 +231,7 @@ Cancelamento é permitido enquanto `RESERVED`, inclusive após o começo previst
 
 **Atraso não é um estado persistido.** Enquanto em uso, está atrasada se `LocalDate.now(clock) > endDate`. Depois da devolução, comparar a data de `returnedAt` na zona de negócio com `endDate` preserva a indicação histórica. Não usar job só para mudar status; a condição pode ser calculada na consulta. Testar a fronteira entre 23:59 do último dia e 00:00 do próximo.
 
-## 6. Etapas de implementação
+## 6. Etapas de implementação da base existente
 
 Cada etapa termina com código, testes e README atualizados. Os critérios abaixo são gates: não marcar concluída só porque a tela aparece. A sequência evita implementar operações de negócio antes de haver modelagem e autorização.
 
@@ -427,12 +431,175 @@ Atraso atual calculado por data civil de São Paulo; devolução tardia usa a da
 
 **Validação da entrega, consolidada em 29/10/2026:** `clean verify` com **276 testes** (14 unitário/MVC e 262 de integração), zero falhas/erros/ignorados, em Temurin 21.0.12.1. Sete testes novos cobrem consistência da carga, idempotência/preservação, inicialização concorrente, banco não vazio, senha ausente, rollback e nome de banco incorreto. Script executado com volume novo, reinício real preservando a reserva gravada no vídeo, execução fora da raiz, credenciais preservadas e variáveis restauradas. Capturas auditadas com axe e inspecionadas; vídeo reproduzido no Chrome, com quadros e legendas conferidos. Dados normais preservados. CI remoto, outros navegadores, leitores de tela e hospedagem não foram validados nesta entrega.
 
-## 7. Decisões ainda a revisar
+## 7. Marketplace — fluxo e modelo planejados
 
-As seguintes propostas permitem avançar sem bloquear a base, mas devem ser revistas antes da respectiva etapa:
+**Situação:** fluxo aprovado para planejamento em 01/11/2026; nenhuma funcionalidade desta seção foi implementada. Nomes de novas entidades e estados abaixo são propostas para orientar as próximas etapas, não contratos de banco já existentes.
 
-| Decisão | Premissa inicial | Momento da revisão |
+### 7.1. Jornada do cliente e da empresa
+
+1. Visitante pesquisa equipamento e período sem precisar entrar na conta. O catálogo mostra empresa, equipamento, diária e total estimado para os dias inclusivos; cidade/UF é uma proposta de filtro a validar antes da etapa M2.
+2. Cliente entra na própria conta e envia uma solicitação para uma unidade física e datas específicas. A tela deixa explícito que o envio ainda não garante o aluguel.
+3. Solicitação fica como **Aguardando aprovação**. Cliente e administradores autorizados daquela empresa podem consultar os detalhes e conversar no chat vinculado a ela.
+4. Empresa e cliente negociam. Uma proposta estruturada registra diária, total e condições combinadas. Se o preço ou as condições mudarem, o cliente deve aceitar a versão correspondente antes da confirmação; uma mensagem livre no chat não substitui esse aceite registrado.
+5. Administrador da empresa aprova. O servidor revalida autorização, atividade das contas/empresa, período, equipamento, disponibilidade e proposta aceita. Somente após a transação terminar a interface informa **Reserva confirmada**.
+6. Empresa registra retirada e devolução. Cliente acompanha a própria reserva, os termos aceitos e o histórico. Recusa e cancelamento mantêm os registros e a conversa.
+
+```mermaid
+flowchart TD
+    A[Busca pública por equipamento e período] --> B[Comparação entre empresas]
+    B --> C[Cliente entra e solicita]
+    C --> D[Aguardando aprovação]
+    D --> E[Conversa e negociação]
+    E --> F[Condições aceitas pelo cliente]
+    F --> G[Empresa tenta aprovar]
+    G --> H{Disponibilidade revalidada?}
+    H -->|Sim| I[Reserva confirmada]
+    H -->|Não| J[Informar conflito e manter sem confirmação]
+    I --> K[Retirada]
+    K --> L[Devolução e histórico]
+```
+
+### 7.2. Empresas, contas e isolamento dos dados
+
+| Participante | Acesso planejado |
+| --- | --- |
+| Visitante | Consultar catálogo público e disponibilidade; não acessar reservas, conversas ou dados pessoais de clientes. |
+| Cliente | Usar uma conta pessoal para solicitar equipamentos de diferentes empresas; consultar, negociar e cancelar somente as próprias solicitações/reservas, conforme o estado. |
+| Administrador de empresa | Usar uma conta individual vinculada à empresa; administrar somente seus equipamentos, solicitações, conversas e operações de retirada/devolução. |
+| Operação da plataforma | Necessidade, permissões e forma de cadastrar empresas ainda a definir; não pressupor acesso global a conversas nem disponibilizar um painel adicional neste ciclo. |
+
+O papel administrativo passa a ser associado a um vínculo com uma empresa, em vez de conceder acesso a todos os dados do sistema. Cada administrador terá login próprio para identificar a autoria das ações. Uma empresa não poderá editar a senha nem desativar globalmente a conta de um cliente que também aluga em outras empresas.
+
+O escopo de empresa deve ser validado no servidor em cada consulta e alteração, inclusive detalhes por ID, pesquisas, paginação, contagens e mensagens. Não confiar em `companyId`, autor, perfil ou proprietário recebidos do navegador. Para dados privados de outra empresa/cliente, manter a abordagem de não revelar sua existência. Catálogo público usará uma saída própria, sem dados privados de administração ou clientes.
+
+### 7.3. Modelo conceitual proposto
+
+| Conceito | Responsabilidade e invariantes |
+| --- | --- |
+| `Company` | Identificar a empresa dona dos equipamentos, seus dados públicos e sua situação de atividade. Campos de cadastro e política de aprovação ainda serão detalhados. |
+| `CompanyMembership` | Vincular uma conta individual à empresa e definir permissão/atividade nesse vínculo. A escolha de empresa na interface nunca concede acesso por si só. |
+| `Equipment` | Pertencer a uma empresa. Proposta: código patrimonial único por empresa, permitindo que duas empresas tenham `NB-001`; cada equipamento continua sendo uma unidade física. Não transferir unidades com histórico entre empresas neste ciclo. |
+| `Reservation` | Reutilizar o registro atual, adicionando a fase de solicitação. Guardar cliente, empresa, equipamento, período e estado coerentes entre si. A empresa deve ser derivada do equipamento e permanecer estável. |
+| `ReservationOffer` | Registrar versões de preço/condições e o aceite do cliente. Preservar a estimativa inicial e, na aprovação, fixar a proposta aceita como valor contratado imutável. |
+| `ReservationEvent` | Manter autor e instante das transições, incluindo solicitação, aprovação e recusa. Negociação/aceite também precisam de registro próprio, sem inventar mudanças de status para representar mensagens. |
+| `ChatMessage` | Vincular cada mensagem a uma solicitação/reserva e ao autor autenticado, com data/hora e ordem estável. A empresa da conversa é sempre a da solicitação. |
+
+Manter o monólito Spring Boot, Thymeleaf e PostgreSQL como base. Introduzir módulos de empresa e conversa conforme a implementação exigir, sem criar microserviços ou trocar o frontend para atender este fluxo. A implementação do chat e seus limites serão escolhidos na etapa M4.
+
+Datas continuam inclusivas em `America/Sao_Paulo`, com `Clock` injetável, limite de 365 diárias e dinheiro em reais com `BigDecimal`. Proposta inicial de negociação: uma diária acordada positiva, total calculado pelo servidor e condições textuais; descontos, taxas ou caução separados exigiriam nova definição. Mudar o preço do catálogo não altera uma proposta já aceita nem um contrato confirmado.
+
+### 7.4. Estados, disponibilidade e aprovação
+
+| Estado proposto | Rótulo | Transições previstas |
 | --- | --- | --- |
-| Horário comercial e tolerância | Sem janela de horas; prazo por dia civil | Antes de uso real |
+| `REQUESTED` | Aguardando aprovação | `RESERVED` pela empresa após as revalidações; `REJECTED` pela empresa com motivo; `CANCELLED` pelo cliente titular. |
+| `RESERVED` | Reserva confirmada | `IN_USE` pela empresa na retirada; `CANCELLED` pelo cliente ou pela empresa conforme a regra de cancelamento. |
+| `IN_USE` | Em uso | `RETURNED` pela empresa. |
+| `REJECTED` | Solicitação recusada | Nenhuma; uma nova tentativa gera outra solicitação. |
+| `CANCELLED` | Cancelada | Nenhuma. |
+| `RETURNED` | Devolvida | Nenhuma. |
 
-Não introduzir pagamento, multas, mensagens assíncronas ou múltiplas empresas para resolver essas pendências. Registrar qualquer mudança de regra junto dos exemplos e testes correspondentes.
+Negociação e espera pelo aceite acontecem dentro de `REQUESTED`; o estado da proposta indica se falta concordância do cliente. O cliente aceita as condições, mas a decisão de confirmar continua sendo da empresa. Repetir uma ação não pode gerar duas confirmações ou eventos duplicados.
+
+- **Pendências não bloqueiam:** várias solicitações podem existir para a mesma unidade e datas. Busca, chat e aceite de proposta não seguram o equipamento.
+- **Confirmação bloqueia:** `RESERVED` e `IN_USE` continuam bloqueando períodos sobrepostos. Uso vencido, manutenção e aposentadoria mantêm as restrições atuais.
+- **Conflito posterior é esperado:** a empresa pode receber solicitações enquanto o item estava disponível e encontrar um conflito ao aprovar. Informar o conflito sem confirmar nem apagar a solicitação. As demais pendências ficam sinalizadas, sem recusa automática neste primeiro fluxo.
+- **Revalidação na aprovação:** não aprovar período cujo início já passou, conta/empresa sem permissão ou atividade, unidade indisponível ou proposta sem aceite válido. Prazo de expiração automática de pedidos será decidido separadamente.
+- **Preço precisa de aceite:** o envio da solicitação registra concordância com a estimativa/condições apresentadas naquela versão. Qualquer contraproposta da empresa invalida o aceite anterior para fins de aprovação até o cliente aceitar a nova versão. Campos ocultos enviados pelo navegador não são prova de aceite ou preço.
+- **Confirmação atômica:** travar os registros necessários, recarregar seu estado, conferir a versão aceita e a disponibilidade, gravar `RESERVED`, valores contratados e evento na mesma transação. Falha em qualquer parte reverte toda a confirmação.
+
+O bloqueio do equipamento continua sendo o ponto de serialização de aprovações conflitantes, inclusive entre instâncias da aplicação. Definir uma ordem única para os bloqueios adicionais de empresa/vínculo/cliente/solicitação antes de implementar M1 e M3; preço, condições, aceite e cancelamento concorrentes não podem escapar da revalidação. Compartilhar o predicado de disponibilidade entre catálogo e aprovação, agora sem contar `REQUESTED` como reserva bloqueante.
+
+O desfecho obrigatório para duas aprovações concorrentes sobrepostas é **uma confirmação e um conflito**, com somente um período bloqueado e eventos coerentes. As duas solicitações e seus históricos permanecem registrados.
+
+### 7.5. Conversa e negociação
+
+Haverá uma conversa por solicitação, acessível somente ao cliente titular e aos administradores com vínculo ativo na empresa correspondente. Pessoas de outra empresa, outros clientes e visitantes não poderão ler nem enviar mensagens, mesmo conhecendo o ID.
+
+Proposta inicial para M4: mensagens de texto, histórico paginado, indicação do autor/horário e atualização periódica da conversa; envio via POST com CSRF, limites de tamanho/frequência e texto escapado na exibição. Anexos, chamadas e notificações externas ficam para outro ciclo. Essas escolhas serão apresentadas antes da implementação.
+
+Salvar mensagens não confirma reservas nem altera datas/preços automaticamente. Ações de proposta, aceite e aprovação continuam estruturadas e autorizadas no servidor. Não permitir edição/exclusão de mensagens neste primeiro ciclo; conservar a conversa para consulta após recusa, cancelamento ou devolução. O prazo para permitir novos envios após esses estados ainda precisa ser definido.
+
+### 7.6. Preservação da base e migração
+
+- Adicionar migrações Flyway novas; não reescrever a V1 já aplicada nem apagar volumes para acomodar o marketplace.
+- Vincular registros existentes a uma empresa inicial explicitamente definida e converter administradores atuais em vínculos dessa empresa. Apresentar esse mapeamento antes de executar qualquer migração sobre dados reais.
+- Preservar IDs, datas, estados, valores e eventos das reservas existentes. Elas já são contratos confirmados/históricos e não devem voltar para `REQUESTED` nem exigir aceite retroativo inventado.
+- Compatibilizar vínculos e chaves estrangeiras para impedir equipamento, empresa e solicitação inconsistentes. Planejar a migração da unicidade do código patrimonial para o escopo da empresa.
+- Rever a administração global de clientes, o bootstrap, as rotas atuais e os formulários para que nenhuma operação antiga permita contornar o isolamento ou confirmar diretamente pelo cliente.
+- Adaptar a demo e os testes com pelo menos duas empresas e clientes compartilhados, mantendo o banco fictício separado do ambiente real. Planejar atualização de demos já semeadas sem alterar silenciosamente suas contas ou apagar seus dados.
+- Validar criação de banco vazio e atualização de um banco da versão anterior em PostgreSQL descartável antes de orientar atualização de ambientes existentes.
+
+## 8. Etapas propostas para o marketplace
+
+**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. As etapas abaixo permanecem pendentes. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
+
+### M1 — Empresas e permissões
+
+- [ ] Detalhar e apresentar para aprovação o modelo de empresa/vínculo, a adaptação dos papéis e as migrações de dados existentes.
+- [ ] Vincular equipamentos e reservas à empresa, restringindo serviços, consultas e administração ao escopo autorizado.
+- [ ] Adaptar gestão de contas e bootstrap para impedir privilégios globais de administradores de empresa.
+- [ ] Cobrir migração, constraints, relações e tentativas de acesso/alteração entre empresas.
+
+**Critério de conclusão:** empresa A não lê nem modifica dados privados de B, inclusive por ID, filtros, contagens ou formulários adulterados. O fluxo existente funciona dentro da empresa correta. Instalação limpa e migração da base anterior preservam os históricos e valores.
+
+### M2 — Busca pública entre empresas e acesso do cliente (depende de M1)
+
+- [ ] Liberar consulta pública por equipamento/período, exibindo empresa, diária e total estimado com paginação.
+- [ ] Definir e implementar a entrada de novos clientes: proposta de cadastro público de conta pessoal, sem escolha de papel administrativo.
+- [ ] Preservar pesquisa e datas ao solicitar login; manter reservas, dados pessoais e administração privados.
+- [ ] Confirmar campos de localização e critérios de exibição de empresas/equipamentos antes de implementar os filtros correspondentes.
+
+**Critério de conclusão:** visitante compara resultados de pelo menos duas empresas e entra/cria conta para continuar, sem receber dados privados. A busca usa a mesma regra de disponibilidade das operações de reserva. Esta etapa intermediária ainda não é uma liberação comercial do marketplace.
+
+### M3 — Solicitação, negociação de valores e aprovação (depende de M2)
+
+- [ ] Substituir a confirmação direta pelo cliente por `REQUESTED`, com novos estados/eventos e migrações compatíveis.
+- [ ] Implementar propostas versionadas, aceite do cliente, aprovação, recusa com motivo e cancelamento da solicitação.
+- [ ] Revalidar período, atividade, autorização, versão aceita e disponibilidade na transação de aprovação.
+- [ ] Manter retirada/devolução e histórico dos contratos confirmados, restritos à empresa responsável.
+- [ ] Testar corridas de aprovação, contraproposta, aceite, cancelamento, manutenção e desativação.
+
+**Critério de conclusão:** pedidos pendentes não bloqueiam o catálogo; somente a empresa confirma. Mudança de condições exige novo aceite. Duas aprovações simultâneas conflitantes geram uma reserva confirmada e uma recusa da operação, preservando solicitações e histórico. Sem chat ainda, a negociação estruturada pode ser exercitada pelos formulários de proposta/aceite.
+
+### M4 — Chat por solicitação (depende de M3)
+
+- [ ] Apresentar a forma de atualização da conversa, os limites de mensagens e a política de envio após encerramento.
+- [ ] Implementar persistência, envio e consulta paginada de mensagens entre os participantes autorizados.
+- [ ] Integrar conversa, proposta, aceite e ações da reserva na mesma jornada, sem confundir mensagem com decisão de negócio.
+- [ ] Testar isolamento entre empresas/clientes, CSRF, conteúdo malicioso, limites e ordenação/paginação.
+
+**Critério de conclusão:** somente os participantes autorizados leem/enviam mensagens; conteúdo é exibido como texto seguro, e o histórico permanece consultável após o encerramento conforme as permissões. Conversar não segura disponibilidade nem aprova a reserva.
+
+### M5 — Fluxo completo, demo e preparação para uso real (depende de M4)
+
+- [ ] Adaptar a demonstração para duas empresas, busca pública, solicitação, negociação, aprovação e retirada/devolução.
+- [ ] Atualizar apresentação do produto, README e guias para refletir somente as capacidades efetivamente implementadas.
+- [ ] Executar a suite completa em JDK 21/PostgreSQL, incluindo isolamento entre empresas, migrações, concorrência e regressões da base.
+- [ ] Revisar desktop/mobile, teclado, estados vazios, conflitos e telas da conversa; documentar verificações feitas e pendentes.
+- [ ] Definir o trabalho necessário antes de clientes reais: recuperação de acesso, proteção contra abuso, privacidade/retenção de dados, backups/restauração, TLS, segredos e operação do serviço.
+
+**Critério de conclusão:** jornada visitante → cliente → solicitação → conversa → acordo → aprovação → retirada → devolução demonstrada com empresas isoladas e evidências de teste. A conclusão funcional não equivale a autorização para publicação ou uso comercial; os requisitos operacionais precisam de revisão própria. Hospedagem continua adiada pelo usuário.
+
+## 9. Decisões a revisar antes das respectivas implementações
+
+O fluxo central já foi aprovado. Os pontos abaixo são propostas ou perguntas pendentes; não tratá-los como funcionalidades prontas nem decisões comerciais tomadas.
+
+| Decisão | Proposta ou situação atual | Momento da revisão |
+| --- | --- | --- |
+| Entrada de empresas | Definir cadastro controlado ou solicitação pública sujeita a aprovação; não criar administrador global implicitamente. | Antes de M1 |
+| Vínculos administrativos | Contas individuais; definir quem convida/remove administradores e se uma pessoa administra várias empresas. | Antes de M1 |
+| Migração dos dados atuais | Uma empresa inicial identificada pelo proprietário, sem apagar registros ou inventar novos aceites. | Antes de M1 |
+| Desativação de empresa/vínculo | Impedir novas ações indevidas e definir quem regulariza contratos pendentes, preservando histórico e bloqueios existentes. | Antes de M1 |
+| Cadastro e recuperação de acesso | Proposta de cadastro público de cliente; escolher confirmação de contato e fluxo de recuperação, sem senha definida pela empresa. | Antes de M2; recuperação antes de uso real |
+| Localização e retirada | Proposta de cidade/UF na busca; definir endereço público, retirada presencial, entrega e área atendida. | Antes de M2 |
+| Composição do preço | Proposta de diária negociada e total por dias inclusivos; taxas, caução e descontos separados não estão definidos. | Antes de M3 |
+| Solicitações sem resposta | Definir expiração e limites contra pedidos repetidos; nunca aprovar pedido com início passado. | Antes de M3 |
+| Cancelamento e recusa | Manter motivo da empresa; revisar prazos e regras comerciais. Não incluir multa automática neste ciclo. | Antes de M3 |
+| Conversas encerradas | Proposta de consulta preservada; definir até quando pode haver novos envios e limites de frequência/tamanho. | Antes de M4 |
+| Horário comercial e tolerância | Manter dias civis inclusivos em São Paulo; horários de retirada e tolerâncias ainda não definidos. | Antes de uso real |
+| Monetização | Mensalidade das empresas, comissão por locação ou outro modelo ainda não escolhidos; não adicionar cobrança por suposição. | Antes de operação comercial |
+| GitHub e licença do produto | Visibilidade e condições de uso/distribuição do código ainda serão decididas; preservar licenças de terceiros. | Antes de distribuição comercial |
+| Publicação e operação | Hospedagem adiada; planejar produção, backups, restauração, privacidade e suporte em tarefa própria. | Antes de uso real |
+
+**Registro desta revisão — 01/11/2026:** somente o planejamento foi atualizado. Nenhuma migração, alteração de código, execução de testes da aplicação ou operação de publicação faz parte desta entrega. Os 276 testes citados nas seções anteriores são resultados históricos da base, não testes executados nesta revisão.
