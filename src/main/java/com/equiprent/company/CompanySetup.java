@@ -4,7 +4,6 @@ import com.equiprent.user.*;
 import jakarta.validation.Validator;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,7 +14,6 @@ import java.time.Clock;
 
 /** Provisionamento local explícito; não possui rota HTTP nem concede acesso global. */
 @Component
-@Profile("!demo")
 @Order(0)
 public class CompanySetup implements ApplicationRunner {
     private final Environment env;
