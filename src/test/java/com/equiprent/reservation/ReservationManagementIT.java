@@ -94,7 +94,7 @@ class ReservationManagementIT {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE chat_message, reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         alice = users.saveAndFlush(new User("Alice", CLIENT, "hash-privado", UserRole.CLIENTE, CREATED));
         bob = users.saveAndFlush(new User("Bob privado", OTHER, "hash-privado", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-privado", UserRole.ADMIN, CREATED));

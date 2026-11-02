@@ -4,7 +4,7 @@
 
 Construir um marketplace de aluguel de equipamentos: o cliente pesquisa equipamento e período, compara empresas e diárias, solicita uma reserva e negocia com a empresa pelo site. A empresa aprova a reserva e acompanha retirada, devolução e histórico.
 
-A base de locação e as etapas M1 a M3 estão implementadas: empresas e permissões, busca pública, cadastro pessoal, solicitações, propostas e aprovação. O cliente pesquisa equipamento e período, compara empresas, solicita e aceita condições. Somente a empresa confirma a reserva após revalidar o acordo e a disponibilidade. O chat será apresentado na M4.
+A base de locação e as etapas M1 a M4 estão implementadas: empresas e permissões, busca pública, cadastro pessoal, solicitações, propostas, aprovação e conversa privada. O cliente pesquisa equipamento e período, compara empresas, solicita, conversa e aceita condições. Somente a empresa confirma a reserva após revalidar o acordo e a disponibilidade. A próxima etapa é a revisão da jornada completa e a preparação operacional da M5.
 
 O ambiente de execução usa apenas a configuração normal com `.env` e `compose.yaml`. O cadastro inicial de administrador é explícito, e novas empresas são provisionadas por `scripts/Register-Company.ps1`. Não há contas, equipamentos ou reservas carregados automaticamente.
 
@@ -14,9 +14,9 @@ Antes de cada nova implementação, apresentar mudanças, partes afetadas e veri
 
 ### Arquitetura e dados
 
-Monólito Java 21/Spring Boot com MVC, Thymeleaf e Bootstrap local, usando PostgreSQL 17. Organização por funcionalidade: `company`, `user`, `equipment`, `reservation`, `security` e `home`. Controllers validam formulários; services revalidam permissões e coordenam transações; JPA e JDBC acessam o banco.
+Monólito Java 21/Spring Boot com MVC, Thymeleaf e Bootstrap local, usando PostgreSQL 17. Organização por funcionalidade: `company`, `user`, `equipment`, `reservation`, `chat`, `security` e `home`. Controllers validam formulários; services revalidam permissões e coordenam transações; JPA e JDBC acessam o banco.
 
-Flyway aplica V1 a V4. Não editar migrações já aplicadas; usar novas versões para evoluir o esquema. Hibernate usa `ddl-auto=validate` e `open-in-view=false`. A V2 associa registros anteriores à Empresa inicial; a V3 acrescenta cidade/UF opcionais; a V4 acrescenta solicitações, propostas e acordos sem inventar aceites retroativos. Contas, senhas, IDs, datas, valores e eventos são preservados.
+Flyway aplica V1 a V5. Não editar migrações já aplicadas; usar novas versões para evoluir o esquema. Hibernate usa `ddl-auto=validate` e `open-in-view=false`. A V2 associa registros anteriores à Empresa inicial; a V3 acrescenta cidade/UF opcionais; a V4 acrescenta solicitações, propostas e acordos sem inventar aceites retroativos; a V5 acrescenta mensagens privadas. Contas, senhas, IDs, datas, valores, propostas e eventos são preservados.
 
 | Estrutura | Responsabilidade |
 | --- | --- |
@@ -28,6 +28,7 @@ Flyway aplica V1 a V4. Não editar migrações já aplicadas; usar novas versõe
 | `reservation` | Cliente, unidade, empresa, período, estado, estimativa inicial e acordo aprovado. Chave estrangeira composta garante coerência entre unidade e empresa. |
 | `reservation_offer` | Versões da proposta com diária, total, condições, autoria e aceite do titular. |
 | `reservation_event` | Autor, instante, transição e motivo; histórico preservado. |
+| `chat_message` | Texto, autor, papel no envio, instante e chave de submissão por conversa; sem alteração/exclusão pela aplicação. |
 
 ### Autorização
 
@@ -66,7 +67,7 @@ A suíte de testes usa PostgreSQL descartável e cobre migrações, autorizaçã
 
 ## 3. Marketplace — fluxo e modelo planejados
 
-**Situação:** fluxo aprovado em 01/11/2026. M1 implementa empresas e permissões; M2 implementa busca pública, cidade/UF, cadastro pessoal e continuidade após login; M3 implementa solicitações, propostas versionadas, aceite e aprovação. O chat continua planejado para M4. Company é uma entidade JPA; os vínculos administrativos e comerciais são tabelas acessadas por JDBC. A jornada abaixo inclui o chat futuro.
+**Situação:** fluxo aprovado em 01/11/2026. M1 implementa empresas e permissões; M2 implementa busca pública, cidade/UF, cadastro pessoal e continuidade após login; M3 implementa solicitações, propostas versionadas, aceite e aprovação; M4 implementa conversa privada com atualização periódica. Company é uma entidade JPA; vínculos e mensagens são acessados por JDBC.
 
 ### 3.1. Jornada do cliente e da empresa
 
@@ -117,7 +118,7 @@ O escopo de empresa deve ser validado no servidor em cada consulta e alteração
 | `ReservationEvent` | Manter autor e instante das transições, incluindo solicitação, aprovação e recusa. Negociação/aceite também precisam de registro próprio, sem inventar mudanças de status para representar mensagens. |
 | `ChatMessage` | Vincular cada mensagem a uma solicitação/reserva e ao autor autenticado, com data/hora e ordem estável. A empresa da conversa é sempre a da solicitação. |
 
-Manter o monólito Spring Boot, Thymeleaf e PostgreSQL como base. Introduzir módulos de empresa e conversa conforme a implementação exigir, sem criar microserviços ou trocar o frontend para atender este fluxo. A implementação do chat e seus limites serão escolhidos na etapa M4.
+O monólito Spring Boot, Thymeleaf e PostgreSQL continua como base. O módulo `chat` usa JDBC, formulários HTML e JavaScript local para atualização periódica, com consulta manual e envio também disponíveis sem JavaScript.
 
 Datas continuam inclusivas em `America/Sao_Paulo`, com `Clock` injetável, limite de 365 diárias e dinheiro em reais com `BigDecimal`. Proposta inicial de negociação: uma diária acordada positiva, total calculado pelo servidor e condições textuais; descontos, taxas ou caução separados exigiriam nova definição. Mudar o preço do catálogo não altera uma proposta já aceita nem um contrato confirmado.
 
@@ -147,11 +148,13 @@ O desfecho obrigatório para duas aprovações concorrentes sobrepostas é **uma
 
 ### 3.5. Conversa e negociação
 
-Haverá uma conversa por solicitação, acessível somente ao cliente titular e aos administradores com vínculo ativo na empresa correspondente. Pessoas de outra empresa, outros clientes e visitantes não poderão ler nem enviar mensagens, mesmo conhecendo o ID.
+Há uma conversa por solicitação, acessível somente ao cliente titular e aos administradores com vínculo ativo na empresa correspondente. Pessoas de outra empresa, outros clientes e visitantes não podem ler nem enviar mensagens, mesmo conhecendo o ID.
 
-Proposta inicial para M4: mensagens de texto, histórico paginado, indicação do autor/horário e atualização periódica da conversa; envio via POST com CSRF, limites de tamanho/frequência e texto escapado na exibição. Anexos, chamadas e notificações externas ficam para outro ciclo. Essas escolhas serão apresentadas antes da implementação.
+M4 aprovada e implementada: texto de até 2000 caracteres, dez envios por participante/conversa em 60 segundos, histórico de 30 mensagens por página, autor/horário e atualização a cada cinco segundos com a página visível. Envio via POST com CSRF e chave contra reenvio duplicado; conteúdo escapado no HTML e inserido como texto no JavaScript. Novas mensagens não substituem rascunhos de mensagem ou proposta. Anexos, chamadas e notificações externas ficam para outro ciclo.
 
-Salvar mensagens não confirma reservas nem altera datas/preços automaticamente. Ações de proposta, aceite e aprovação continuam estruturadas e autorizadas no servidor. Não permitir edição/exclusão de mensagens neste primeiro ciclo; conservar a conversa para consulta após recusa, cancelamento ou devolução. O prazo para permitir novos envios após esses estados ainda precisa ser definido.
+Salvar mensagens não confirma reservas nem altera datas/preços automaticamente. Ações de proposta, aceite e aprovação continuam estruturadas e autorizadas no servidor. Mensagens não podem ser editadas/excluídas pela aplicação. O usuário aprovou envios durante solicitação/aluguel e até o instante de recusa, cancelamento ou devolução mais sete dias (168 horas); depois disso, somente consulta. Pedido com início passado continua discutível, sem permitir sua aprovação. Bloqueios/desativações impedem novos envios; o histórico segue as permissões já existentes de consulta.
+
+O chat bloqueia empresa/vínculo/administrador → cliente → reserva, sem adquirir bloqueio de equipamento. Esse protocolo serializa limite de frequência, prazo, reenvio e inclusão, respeitando a ordem de bloqueios das operações de locação. Consultas usam cursores por ID, evitando duplicação e perda de mensagens durante atualização ou paginação.
 
 ### 3.6. Preservação da base e migração
 
@@ -165,7 +168,7 @@ Salvar mensagens não confirma reservas nem altera datas/preços automaticamente
 
 ## 4. Etapas propostas para o marketplace
 
-**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. M1 a M3 foram aprovadas e implementadas; M4 e M5 continuam pendentes. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
+**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. M1 a M4 foram aprovadas e implementadas; M5 continua pendente. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
 
 ### M1 — Empresas e permissões
 
@@ -205,16 +208,18 @@ Salvar mensagens não confirma reservas nem altera datas/preços automaticamente
 
 ### M4 — Chat por solicitação (depende de M3)
 
-**Próxima etapa:** apresentar limites, atualização da conversa e política após encerramento para aprovação antes de alterar código.
+**Decisão aprovada:** conversa privada por solicitação, atualização a cada cinco segundos, até 2000 caracteres, dez mensagens por minuto por participante/conversa e sete dias adicionais após o encerramento.
 
-- [ ] Apresentar a forma de atualização da conversa, os limites de mensagens e a política de envio após encerramento.
-- [ ] Implementar persistência, envio e consulta paginada de mensagens entre os participantes autorizados.
-- [ ] Integrar conversa, proposta, aceite e ações da reserva na mesma jornada, sem confundir mensagem com decisão de negócio.
-- [ ] Testar isolamento entre empresas/clientes, CSRF, conteúdo malicioso, limites e ordenação/paginação.
+- [x] Apresentar a forma de atualização da conversa, os limites de mensagens e a política de envio após encerramento.
+- [x] Implementar persistência, envio e consulta paginada de mensagens entre os participantes autorizados.
+- [x] Integrar conversa, proposta, aceite e ações da reserva na mesma jornada, sem confundir mensagem com decisão de negócio.
+- [x] Testar isolamento entre empresas/clientes, CSRF, conteúdo malicioso, limites e ordenação/paginação.
 
 **Critério de conclusão:** somente os participantes autorizados leem/enviam mensagens; conteúdo é exibido como texto seguro, e o histórico permanece consultável após o encerramento conforme as permissões. Conversar não segura disponibilidade nem aprova a reserva.
 
 ### M5 — Fluxo completo e preparação para uso real (depende de M4)
+
+**Próxima etapa:** apresentar o escopo de revisão e as prioridades para operação real antes de implementar novas alterações. Publicação continua adiada.
 
 - [ ] Validar o fluxo de duas empresas, busca pública, solicitação, negociação, aprovação e retirada/devolução em ambiente de teste isolado.
 - [ ] Atualizar apresentação do produto, README e guias para refletir somente as capacidades efetivamente implementadas.
@@ -239,7 +244,7 @@ O fluxo central já foi aprovado. Os pontos abaixo são propostas ou perguntas p
 | Composição do preço | Diária negociada e total por dias inclusivos implementados; condições textuais por versão, sem taxas ou caução. | Implementado em M3 |
 | Solicitações sem resposta | Sem expiração automática; início passado impede aprovação. Pedido pendente idêntico e reenvio não duplicam registros. Limites gerais contra abuso ficam para operação pública. | Implementado em M3; abuso antes de uso real |
 | Cancelamento e recusa | Empresa recusa pedido com motivo; titular pode cancelar. Contrato confirmado continua cancelável antes da retirada, sem multa automática. | Implementado em M3 |
-| Conversas encerradas | Proposta de consulta preservada; definir até quando pode haver novos envios e limites de frequência/tamanho. | Antes de M4 |
+| Conversas encerradas | Consulta preservada e envios por sete dias após encerramento; até 2000 caracteres e dez mensagens por participante/conversa em 60 segundos. | Aprovado e implementado em M4 |
 | Horário comercial e tolerância | Manter dias civis inclusivos em São Paulo; horários de retirada e tolerâncias ainda não definidos. | Antes de uso real |
 | Monetização | Mensalidade das empresas, comissão por locação ou outro modelo ainda não escolhidos; não adicionar cobrança por suposição. | Antes de operação comercial |
 | GitHub e licença do produto | Visibilidade e condições de uso/distribuição do código ainda serão decididas; preservar licenças de terceiros. | Antes de distribuição comercial |

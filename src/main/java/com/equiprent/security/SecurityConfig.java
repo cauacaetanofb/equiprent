@@ -20,7 +20,7 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/", "/login", "/css/**", "/vendor/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/", "/login", "/css/**", "/js/**", "/vendor/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/catalogo", "/catalogo/*", "/catalogo/*/continuar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/cadastro").anonymous()
                         .requestMatchers(HttpMethod.POST, "/cadastro").anonymous()

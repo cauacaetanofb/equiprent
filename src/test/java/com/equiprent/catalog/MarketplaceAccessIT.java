@@ -64,7 +64,7 @@ class MarketplaceAccessIT {
 
     @BeforeEach void prepare() {
         SecurityContextHolder.clearContext();
-        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
+        jdbc.execute("TRUNCATE chat_message, reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
         jdbc.update("DELETE FROM company WHERE code <> 'INITIAL'");
         jdbc.update("UPDATE company SET name='Empresa A', active=true, city='Curitiba', state='PR' WHERE id=1");
         companyB = jdbc.queryForObject("INSERT INTO company(code,name,city,state) VALUES ('B','Empresa B','Campinas','SP') RETURNING id", Long.class);

@@ -91,7 +91,7 @@ class ReservationIT {
     void setUp() {
         SecurityContextHolder.clearContext();
         clock.now = Instant.parse("2026-11-01T12:00:00Z");
-        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE chat_message, reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY CASCADE");
         customer = users.saveAndFlush(new User("Cliente", CLIENT, "hash-teste", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Outro cliente", OTHER, "hash-teste", UserRole.CLIENTE, CREATED));
         users.saveAndFlush(new User("Administrador", ADMIN, "hash-teste", UserRole.ADMIN, CREATED));

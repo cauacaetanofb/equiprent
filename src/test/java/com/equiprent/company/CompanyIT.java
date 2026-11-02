@@ -74,7 +74,7 @@ class CompanyIT {
 
     @BeforeEach void prepare() {
         SecurityContextHolder.clearContext();
-        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
+        jdbc.execute("TRUNCATE chat_message, reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
         jdbc.update("DELETE FROM company WHERE code <> 'INITIAL'");
         jdbc.update("UPDATE company SET active=true, name='Empresa inicial' WHERE id=1");
         companyB = jdbc.queryForObject("INSERT INTO company(code,name) VALUES ('B','Empresa B') RETURNING id", Long.class);

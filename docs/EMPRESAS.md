@@ -4,7 +4,7 @@ Cada administrador tem uma conta individual e um vínculo com uma empresa. O cli
 
 Cada conta administrativa pertence a uma única empresa; várias contas podem pertencer à mesma empresa. Convites de funcionários, troca de empresa na sessão e painel global da plataforma ainda não fazem parte da interface. O procedimento local abaixo cadastra uma nova empresa com seu primeiro administrador, usando um e-mail ainda não cadastrado.
 
-O catálogo público em `/catalogo` permite pesquisar sem login, e o cliente pode criar sua própria conta em `/cadastro`. O cliente envia solicitações e aceita propostas; somente a empresa aprova e confirma a reserva. O chat continua previsto para M4 no [planejamento](../PLANEJAMENTO.md).
+O catálogo público em `/catalogo` permite pesquisar sem login, e o cliente pode criar sua própria conta em `/cadastro`. O cliente envia solicitações, conversa com a empresa e aceita propostas; somente a empresa aprova e confirma a reserva. O chat identifica cada administrador e segue o escopo privado da solicitação; regras e roteiro estão em [MARKETPLACE.md](MARKETPLACE.md).
 
 ## Atualizar o ambiente existente
 
@@ -55,6 +55,7 @@ Empresas anteriores à V3 continuam válidas e aparecem como **Localização nã
 - Pedidos `REQUESTED` não impedem o bloqueio comercial, mas ficam sem possibilidade de aceite, nova proposta ou aprovação enquanto o bloqueio persistir. O cliente ainda pode cancelar e a empresa pode recusar. Reservas confirmadas/em uso precisam ser resolvidas antes do bloqueio.
 - Escritas administrativas mantêm bloqueios compartilhados da empresa, vínculo e conta administrativa antes dos bloqueios de cliente/equipamento/reserva. Criação de reserva bloqueia empresa → cliente → equipamento. Bloquear novos aluguéis de um cliente usa empresa → cliente e verifica pendências somente naquela empresa. O bloqueio compartilhado permite operações simultâneas e faz uma desativação concorrente aguardar a transação em andamento.
 - A reserva guarda a empresa derivada da unidade. Uma chave estrangeira composta impede associar uma reserva à empresa de outro equipamento. Equipamento não pode ser transferido de empresa pela aplicação.
+- Mensagens também exigem acesso ao registro por empresa/titular, inclusive em consultas periódicas e formulários inválidos. Bloqueio comercial impede novos envios dos dois lados, preservando o histórico. Empresa inativa impede a administração, enquanto o cliente ativo mantém a consulta ao próprio histórico. A V5 preserva todos os registros anteriores.
 - O provisionamento local serializa cadastros pelo bloqueio da tabela de empresas; não há permissão administrativa global na interface.
 
 ## Verificações

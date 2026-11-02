@@ -27,7 +27,19 @@ Pedidos não expiram automaticamente. Quando a data inicial passa, a tela sinali
 
 Sob aprovações simultâneas conflitantes, uma confirma e a outra informa indisponibilidade, preservando o pedido pendente. O histórico de propostas é paginado, com dez versões por página. Outros clientes e outras empresas não acessam a negociação, nem por ID ou formulário adulterado.
 
-O chat pertence à M4. Não há taxas, caução, cobrança ou multa automática. Confirmação de e-mail, recuperação de acesso e proteção contra abuso precisam de entregas próprias antes da publicação.
+Não há taxas, caução, cobrança ou multa automática. Confirmação de e-mail, recuperação de acesso e proteção contra abuso para operação pública precisam de entregas próprias antes da publicação.
+
+## Conversa por solicitação — M4
+
+- A seção **Conversa com a empresa/o cliente** aparece nos detalhes da solicitação ou reserva. Somente o titular e os administradores ativos daquela empresa leem e enviam mensagens. Cada mensagem identifica autor, participante e horário de São Paulo.
+- Mensagens de texto têm até 2000 caracteres. O limite é de dez mensagens por participante em cada conversa, em uma janela móvel de 60 segundos. Autor, horário, empresa e reserva são determinados no servidor; outros campos enviados pelo navegador não concedem acesso.
+- As últimas 30 mensagens aparecem em ordem cronológica, em uma área com rolagem acessível por teclado. **Carregar mensagens anteriores** busca mais 30 por vez, preservando a posição de leitura. Novas mensagens acompanham o final quando ele já está visível; a leitura de trechos anteriores não é interrompida. A atualização automática consulta novas mensagens a cada cinco segundos enquanto a página está visível, sem substituir rascunhos de mensagem ou proposta. Há também **Atualizar conversa**.
+- Em falha de conexão ou resposta perdida, o texto continua na mesma página e pode ser reenviado sem duplicar a mensagem já recebida. O rascunho não é armazenado permanentemente; sair, recarregar ou encerrar a sessão pode descartá-lo. Se a sessão/permissão mudar, a atualização é interrompida e a tela orienta entrar novamente.
+- Com JavaScript desativado, envio por formulário, consulta e histórico continuam disponíveis; a atualização é manual. Mensagens são exibidas como texto, sem executar HTML ou scripts. Não há anexos, edição ou exclusão de mensagens pela aplicação.
+- A conversa fica aberta durante `REQUESTED`, `RESERVED` e `IN_USE`. Um pedido com início passado ainda pode ser discutido, embora continue sem possibilidade de aprovação. Recusa, cancelamento ou devolução permitem novos envios até o instante do encerramento mais sete dias (168 horas). A partir desse limite, o histórico fica somente para leitura. Conta/empresa/vínculo inativos e bloqueio comercial impedem novos envios; a consulta mantém as permissões já existentes para o histórico.
+- Conversar não altera preços, datas, aceite, estado ou disponibilidade. O acordo continua sendo registrado pelas ações de proposta, aceite e aprovação.
+
+O envio bloqueia empresa/vínculo/administrador → cliente → reserva; não bloqueia o equipamento. O bloqueio da reserva protege contagem, prazo e inclusão contra envios simultâneos entre instâncias. A chave de submissão é única por autor e conversa; repetir o mesmo envio mantém o registro original. A V5 acrescenta somente a tabela `chat_message` e índices, sem modificar os registros anteriores.
 
 ## Testar localmente
 
@@ -40,7 +52,7 @@ docker compose up -d --wait postgres
 .\scripts\Start-Local.ps1
 ```
 
-O Flyway aplica a V4 ao iniciar sobre o banco existente. Contratos anteriores mantêm estados, períodos, valores e eventos, sem propostas ou aceites retroativos inventados. Não apague o volume nem recrie contas para atualizar.
+O Flyway aplica a V5 ao iniciar sobre o banco existente. Solicitações, contratos, propostas, aceites e eventos anteriores são preservados. Não apague o volume nem recrie contas para atualizar.
 
 1. Entre como administrador e preencha cidade/UF em **Minha conta → Localização da empresa**. Cadastre um equipamento operacional.
 2. Para comparar empresas, use outra empresa real cadastrada pelo [procedimento local](EMPRESAS.md#cadastrar-outra-empresa-pelo-powershell) e cadastre seus equipamentos com o respectivo administrador.
@@ -51,5 +63,7 @@ O Flyway aplica a V4 ao iniciar sobre o banco existente. Contratos anteriores ma
 7. Como cliente, atualize os detalhes e aceite a nova proposta. Como administrador, atualize e aprove. Confira o valor contratado e a estimativa inicial preservada.
 8. Crie dois pedidos sobrepostos antes de aprovar qualquer um. Aprove um: o outro deve indicar conflito, mantendo o histórico. Recuse-o com motivo ou cancele como titular. Confira também as opções de cancelamento, retirada e devolução no contrato confirmado.
 9. Com outro cliente ou administrador de outra empresa, tente abrir a URL privada da solicitação: o acesso deve ser negado, sem revelar os dados.
+10. Abra a mesma solicitação em duas sessões: cliente e administrador. Envie mensagens dos dois lados e aguarde até cinco segundos para vê-las. Deixe uma proposta ou mensagem parcialmente digitada e confira que ela permanece durante a atualização.
+11. Confira autor/horário, histórico e o formulário sem JavaScript. Após cancelar ou recusar, confira o prazo exibido de sete dias. O fechamento desse prazo e as condições concorrentes são exercitados pelos testes automatizados com relógio controlado.
 
-Os testes automatizados usam bancos descartáveis e incluem migração V3 → V4, aceites obsoletos, duplicidade, aprovações concorrentes, cancelamento, manutenção, desativação, CSRF e isolamento. Resultados e pendências estão em [VALIDACOES.md](VALIDACOES.md).
+Os testes automatizados usam bancos descartáveis e incluem migrações V3 → V4 e V4 → V5, aceites obsoletos, duplicidade, concorrência, cancelamento, manutenção, desativação, CSRF, isolamento, paginação de mensagens e limites do chat. Resultados e pendências estão em [VALIDACOES.md](VALIDACOES.md).

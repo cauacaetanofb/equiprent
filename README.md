@@ -13,6 +13,7 @@ Sistema web de aluguel de equipamentos com busca pública entre empresas, cadast
 | Criar uma conta pessoal e continuar a pesquisa após entrar | Consultar somente os dados administrativos da própria empresa |
 | Solicitar reservas sem bloquear a disponibilidade | Gerenciar catálogo, diária e condição física |
 | Aceitar propostas de diária e condições | Propor valores, aprovar ou recusar solicitações |
+| Conversar com a empresa dentro de cada solicitação | Responder no chat com identificação do administrador |
 | Consultar somente suas reservas e histórico | Consultar reservas da própria empresa |
 | Cancelar reservas ainda não retiradas | Cancelar com motivo e registrar retirada/devolução |
 | Usar a mesma conta em diferentes empresas | Acompanhar atrasos e compromissos afetados |
@@ -78,6 +79,6 @@ A [integração contínua](.github/workflows/ci.yml) executa a suíte em JDK 21 
 
 ## Evolução do produto
 
-A separação de empresas, busca pública, localização, cadastro pessoal, solicitações, propostas versionadas e aprovação pela empresa estão implementados até a M3. O chat por solicitação será apresentado para aprovação na M4.
+A separação de empresas, busca pública, localização, cadastro pessoal, solicitações, propostas, aprovação e chat privado estão implementados até a M4. A conversa atualiza a cada cinco segundos com a página visível e permite envios até sete dias após recusa, cancelamento ou devolução. A próxima etapa é validar a jornada completa e planejar a operação real, conforme a M5.
 
 Ainda não há confirmação de e-mail, recuperação de senha, pagamento, multa automática, cadastro público de empresas, carrinho ou edição do período de uma reserva. A publicação depende de configuração e operação próprias. O [planejamento](PLANEJAMENTO.md) distingue o comportamento atual das próximas entregas.

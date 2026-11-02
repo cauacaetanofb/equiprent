@@ -1,5 +1,17 @@
 # Validação do sistema
 
+## Verificação da M4 — 01/11/2026
+
+- `clean verify` em JDK 21 e PostgreSQL 17: **407 testes aprovados**, sendo 14 unitários/MVC e 393 de integração, sem falhas, erros ou testes ignorados. Foram acrescentados 37 cenários de chat e um de migração V4 → V5.
+- Cobertos: acesso pelo titular e administradores da empresa, isolamento entre empresas/clientes, contas e vínculos inativos, bloqueio comercial, CSRF, campos adulterados, texto escapado, validação, paginação e consulta incremental. Mensagens não alteram propostas, aceite, preço, estado ou disponibilidade.
+- Reenvio mantém a mensagem original; alteração de texto com a mesma chave é recusada. Limite de dez envios por participante/conversa em 60 segundos, fronteira exata dos sete dias após recusa/cancelamento/devolução e pedidos com início passado são exercitados com relógio controlado.
+- Concorrência real em PostgreSQL: envios duplicados, disputa pelo décimo envio, cancelamento, bloqueio comercial, desativação de empresa/vínculo/administrador/cliente e prazo que termina enquanto o envio aguarda bloqueio. Falha na gravação reverte a transação e permite nova tentativa.
+- V5 validada em banco vazio e sobre dados V4: preserva contas, empresas, equipamentos, solicitações, contratos, propostas, aceites e eventos. Somente a tabela de mensagens e seus índices são acrescentados. V1 a V4 permanecem intactas.
+- JAR executado em PostgreSQL exclusivo e descartável, com duas empresas e dois clientes. Chrome: troca entre sessões, atualização automática, rascunhos de mensagem/proposta preservados, carregamento de mensagens antigas, resposta perdida seguida de reenvio sem duplicata, conexão interrompida, limite de frequência e sessão encerrada. Envio sem JavaScript e negativa de acesso por outro cliente também passaram. Proposta de R$ 40,00 por três dias, aceite e aprovação mantiveram o contrato de R$ 120,00 independente da conversa.
+- Após o ajuste final da rolagem, o JAR foi atualizado e a jornada de navegador repetida: **20 verificações automatizadas de interface** em 1366 px e 360 px, sem rolagem horizontal, erros JavaScript ou violações nas regras WCAG 2/2.1 A/AA selecionadas pelo axe-core. Capturas da conversa foram inspecionadas visualmente. Teclado, posição de leitura ao carregar mensagens antigas e acompanhamento de novas mensagens no final foram conferidos. Isso não equivale a uma auditoria completa de acessibilidade.
+- `git diff --check` e os 25 links locais da documentação passaram. Os relatórios dos testes Java permanecem em `target/surefire-reports` e `target/failsafe-reports`.
+- O `.env` e o banco normal não foram usados nem alterados. O volume `equiprent_postgres_data` foi preservado; o ambiente e as credenciais temporárias da revisão foram descartados.
+
 ## Verificação da M3 — 01/11/2026
 
 - `clean verify` em JDK 21 e PostgreSQL 17: **369 testes aprovados**, sendo 14 unitários/MVC e 355 de integração, sem falhas, erros ou testes ignorados. Foram acrescentados 40 cenários de negociação e um de migração V3 → V4.
@@ -29,7 +41,7 @@ Os relatórios completos ficam em `target/surefire-reports` e `target/failsafe-r
 
 ## Cobertura principal
 
-- Persistência, integridade monetária e migrações de V1/V2/V3 até V4 com preservação dos dados.
+- Persistência, integridade monetária e migrações de V1/V2/V3/V4 até V5 com preservação dos dados.
 - Autenticação, CSRF, atividade das contas e autorização por proprietário/empresa.
 - Catálogo, disponibilidade, períodos inclusivos e valores históricos.
 - Concorrência real entre transações, rollback de alterações e registros de eventos.
@@ -40,6 +52,7 @@ Os relatórios completos ficam em `target/surefire-reports` e `target/failsafe-r
 - Continuidade da pesquisa durante cadastro/login, destinos relativos e revalidação da disponibilidade.
 - Edição de localização da própria empresa, validação de cidade/UF e atualizações concorrentes.
 - Solicitação, propostas versionadas, aceite e aprovação, incluindo isolamento por empresa/titular, CSRF, texto escapado e valores calculados no servidor.
+- Chat privado, histórico paginado, reenvio sem duplicação, limite por participante, prazo após encerramento, preservação da negociação e conflitos concorrentes.
 
 ## Pendências
 

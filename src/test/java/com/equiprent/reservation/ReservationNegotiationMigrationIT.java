@@ -30,7 +30,7 @@ class ReservationNegotiationMigrationIT {
         var before=new HashMap<String,List<Map<String,Object>>>();
         for(String table:List.of("app_user","company","equipment","reservation_event","company_customer"))before.put(table,jdbc.queryForList("SELECT * FROM "+table));
         var reservations=jdbc.queryForList("SELECT * FROM reservation ORDER BY id");
-        var flyway=Flyway.configure().dataSource(source).locations("classpath:db/migration").load();
+        var flyway=Flyway.configure().dataSource(source).locations("classpath:db/migration").target("4").load();
         assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
         for(var entry:before.entrySet())assertThat(jdbc.queryForList("SELECT * FROM "+entry.getKey())).isEqualTo(entry.getValue());
         var migrated=jdbc.queryForList("SELECT * FROM reservation ORDER BY id");

@@ -17,8 +17,10 @@ public class ReservationManagementController {
     private final ReservationManagementService reservations;
     private final ReservationOperationsService operations;
     private final ReservationNegotiationService negotiation;
+    private final com.equiprent.chat.ChatService chat;
     public ReservationManagementController(ReservationManagementService reservations, ReservationOperationsService operations,
-                                          ReservationNegotiationService negotiation) {
+                                          ReservationNegotiationService negotiation, com.equiprent.chat.ChatService chat) {
+        this.chat = chat;
         this.negotiation=negotiation;
         this.reservations = reservations;
         this.operations = operations;
@@ -72,6 +74,12 @@ public class ReservationManagementController {
         model.addAttribute("details", reservations.details(id, administrative));
         var data=negotiation.details(id,administrative,offerPage);
         model.addAttribute("negotiation",data);
+        model.addAttribute("chatFeed", chat.read(id, administrative, null, null));
+        model.addAttribute("chatBase", (administrative ? "/admin/reservas/" : "/reservas/") + id);
+        model.addAttribute("chatHistorical", false);
+        var chatForm = new com.equiprent.chat.ChatMessageForm();
+        chatForm.setSubmissionToken(java.util.UUID.randomUUID());
+        model.addAttribute("chatMessageForm", chatForm);
         if (!model.containsAttribute("offerForm")) {
             var form=new OfferForm();
             if (data.current()!=null) { form.setVersion(data.current().version()); form.setDailyRate(data.current().dailyRate()); form.setTerms(data.current().terms()); }

@@ -93,7 +93,7 @@ class PersistenceIT {
     @BeforeEach
     void setUp() {
         // Seguro aqui: o datasource aponta exclusivamente para o contêiner descartável.
-        jdbc.execute("TRUNCATE reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
+        jdbc.execute("TRUNCATE chat_message, reservation_offer, reservation_event, reservation, equipment, app_user, company_membership, company_customer RESTART IDENTITY");
         customer = users.saveAndFlush(new User("Cliente de teste", " Cliente@Example.Test ",
                 TEST_HASH, UserRole.CLIENTE, CREATED_AT));
         item = equipment.saveAndFlush(new Equipment(1L, "NB-001", "Notebook", "Notebook para locação",
@@ -105,14 +105,14 @@ class PersistenceIT {
 
     @Test
     void shouldMigrateEmptyDatabaseAndStartHttpServer() throws Exception {
-        assertThat(flyway.info().applied()).hasSize(4);
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("4");
+        assertThat(flyway.info().applied()).hasSize(5);
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("5");
         assertThat(flyway.info().pending()).isEmpty();
         assertThat(jdbc.queryForList("""
                 SELECT table_name FROM information_schema.tables
                 WHERE table_schema = 'public' AND table_name <> 'flyway_schema_history'
                 """, String.class)).containsExactlyInAnyOrder(
-                "app_user", "equipment", "reservation", "reservation_event", "company", "company_membership", "company_customer", "reservation_offer");
+                "app_user", "equipment", "reservation", "reservation_event", "company", "company_membership", "company_customer", "reservation_offer", "chat_message");
 
         try (HttpClient client = HttpClient.newHttpClient()) {
             var request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/"))
@@ -135,12 +135,12 @@ class PersistenceIT {
                         "--spring.jpa.hibernate.ddl-auto=validate")) {
             assertThat(restarted.getBean(EntityManagerFactory.class).isOpen()).isTrue();
             var restartedFlyway = restarted.getBean(Flyway.class);
-            assertThat(restartedFlyway.info().applied()).hasSize(4);
+            assertThat(restartedFlyway.info().applied()).hasSize(5);
             assertThat(restartedFlyway.migrate().migrationsExecuted).isZero();
             assertThat(restarted.getBean(ReservationRepository.class).findById(reservation.getId()))
                     .isPresent();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Long.class))
-                    .isEqualTo(4L);
+                    .isEqualTo(5L);
         }
     }
 

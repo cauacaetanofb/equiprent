@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="conversation" id="conversa" class="card p-4 mb-4" aria-labelledby="conversa-titulo"
+         data-chat th:attr="data-endpoint=@{${chatBase + '/mensagens'}},data-last=${chatFeed.lastId},data-first=${chatFeed.firstId},data-historical=${chatHistorical}">
+    <h2 id="conversa-titulo" class="h4">Conversa com <span th:text="${isAdmin ? 'o cliente' : 'a empresa'}"></span></h2>
+    <p class="text-secondary">Conversa privada entre o titular e a empresa deste aluguel. As mensagens e seus autores ficam registrados no histórico.</p>
+    <p data-chat-permission th:text="${chatFeed.permission.explanation}" class="alert" th:classappend="${chatFeed.permission.canSend ? 'alert-info' : 'alert-secondary'}"></p>
+    <p th:if="${chatSuccess}" class="alert alert-success" role="status" th:text="${chatSuccess}"></p>
+    <p th:if="${chatError}" class="alert alert-danger" role="alert" tabindex="-1" autofocus th:text="${chatError}"></p>
+    <div class="d-flex flex-wrap gap-3 mb-3">
+        <a data-chat-older th:hidden="${!chatFeed.more}" th:href="@{${chatBase + '/conversa'}(before=${chatFeed.firstId})}">Carregar mensagens anteriores</a>
+        <a th:if="${chatHistorical}" th:href="@{${chatBase + '/conversa'}}">Voltar às mensagens recentes</a>
+    </div>
+    <p data-chat-empty th:hidden="${!chatFeed.messages.empty}" class="text-secondary">Ainda não há mensagens. Use a conversa para combinar os detalhes do aluguel.</p>
+    <ol data-chat-messages class="chat-messages list-unstyled mb-3" tabindex="0" aria-label="Mensagens da conversa">
+        <li th:each="message : ${chatFeed.messages}" class="chat-message p-3 mb-3 rounded border" th:classappend="${message.own ? 'chat-own' : 'bg-light'}" th:attr="data-message-id=${message.id}">
+            <p class="fw-semibold mb-1" th:text="|${message.author} · ${message.participant}${message.own ? ' · Você' : ''}|"></p>
+            <p class="small text-secondary mb-2"><time th:datetime="${message.sentAt}" th:text="${message.sentAtLabel}"></time></p>
+            <p class="chat-body mb-0" th:text="${message.body}"></p>
+        </li>
+    </ol>
+    <p data-chat-status class="small text-secondary" role="status" aria-live="polite">Novas mensagens são consultadas a cada cinco segundos enquanto esta página está visível.</p>
+    <p id="chat-error" data-chat-error class="text-danger" role="alert" hidden></p>
+    <a data-chat-login th:href="@{/login}" hidden>Entrar novamente</a>
+    <button data-chat-refresh type="button" class="btn btn-outline-secondary align-self-start mb-3" hidden>Atualizar conversa</button>
+    <noscript><p>Use <a th:href="@{${chatBase + '/conversa'}}">Atualizar conversa</a> para consultar novas mensagens.</p></noscript>
+    <form data-chat-form th:action="@{${chatBase + '/mensagens'}}" th:object="${chatMessageForm}" method="post">
+        <input type="hidden" th:field="*{submissionToken}">
+        <label for="chat-body" class="form-label">Sua mensagem</label>
+        <textarea id="chat-body" th:field="*{body}" rows="3" maxlength="2000" required class="form-control" aria-describedby="chat-help chat-count chat-error" th:readonly="${!chatFeed.permission.canSend}"></textarea>
+        <p id="chat-help" class="form-text mb-1">Até 2000 caracteres e dez mensagens por minuto nesta conversa. Revise antes de enviar: o texto enviado permanece no histórico.</p>
+        <p id="chat-count" data-chat-count class="small text-secondary">Limite de 2000 caracteres.</p>
+        <button type="submit" class="btn btn-primary" th:disabled="${!chatFeed.permission.canSend}">Enviar mensagem</button>
+    </form>
+    <script th:src="@{/js/chat.js}" defer></script>
+</section>
+</body></html>

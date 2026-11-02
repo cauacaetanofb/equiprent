@@ -70,7 +70,7 @@ class ReservationNegotiationIT {
 
     @BeforeEach void prepare(){
         SecurityContextHolder.clearContext();clock.now=Instant.parse("2026-11-01T12:00:00Z");
-        jdbc.execute("TRUNCATE reservation_offer,reservation_event,reservation,equipment,app_user,company_membership,company_customer RESTART IDENTITY");
+        jdbc.execute("TRUNCATE chat_message, reservation_offer,reservation_event,reservation,equipment,app_user,company_membership,company_customer RESTART IDENTITY");
         jdbc.update("DELETE FROM company WHERE code<>'INITIAL'");jdbc.update("UPDATE company SET active=true WHERE id=1");
         companyB=jdbc.queryForObject("INSERT INTO company(code,name) VALUES ('B','Empresa B') RETURNING id",Long.class);
         client=account("cliente",UserRole.CLIENTE);other=account("outro",UserRole.CLIENTE);adminA=account("admin-a",UserRole.ADMIN);adminB=account("admin-b",UserRole.ADMIN);

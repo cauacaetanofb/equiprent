@@ -79,11 +79,11 @@ O volume persistente é `equiprent_postgres_data`. Não é necessário apagar da
 
 ## Migrações e dados
 
-Flyway aplica V1 (domínio de locação), V2 (empresas e vínculos), V3 (cidade/UF opcionais) e `V4__add_reservation_requests_and_offers.sql` (solicitações e propostas). As migrações preservam contas, preços, reservas e históricos. A V3 não preenche localizações por suposição. A V4 preserva os contratos existentes sem inventar propostas ou aceites antigos.
+Flyway aplica V1 (domínio de locação), V2 (empresas e vínculos), V3 (cidade/UF), V4 (solicitações e propostas) e `V5__add_reservation_chat.sql` (mensagens privadas). As migrações preservam contas, preços, reservas e históricos. A V3 não preenche localizações por suposição. A V4 preserva contratos sem inventar aceites antigos. A V5 acrescenta a tabela de mensagens sem modificar as negociações anteriores.
 
-Tabelas: `app_user`, `company`, `company_membership`, `company_customer`, `equipment`, `reservation`, `reservation_offer` e `reservation_event`, além de `flyway_schema_history`. Não há carga automática de contas, equipamentos ou reservas. A Empresa inicial é parte da estrutura de migração e tem nome configurável.
+Tabelas: `app_user`, `company`, `company_membership`, `company_customer`, `equipment`, `reservation`, `reservation_offer`, `reservation_event` e `chat_message`, além de `flyway_schema_history`. Não há carga automática de contas, equipamentos, reservas ou mensagens. A Empresa inicial é parte da estrutura de migração e tem nome configurável.
 
-Hibernate usa `ddl-auto=validate`. Evoluções de banco exigem novas migrações; mantenha V1 a V4 intactas depois de aplicadas.
+Hibernate usa `ddl-auto=validate`. Evoluções de banco exigem novas migrações; mantenha V1 a V5 intactas depois de aplicadas.
 
 ## Diagnóstico de conexão
 
@@ -132,6 +132,12 @@ Para verificar propostas, aceite, aprovação, cancelamento concorrente e migra�
 
 ```powershell
 .\mvnw.cmd '-Dit.test=ReservationNegotiationIT,ReservationNegotiationMigrationIT' verify
+```
+
+Para verificar mensagens, isolamento, limites, prazo após encerramento e migração V4 → V5:
+
+```powershell
+.\mvnw.cmd '-Dit.test=ChatIT,ChatMigrationIT' verify
 ```
 
 Relatórios: `target/surefire-reports` e `target/failsafe-reports`. Para executar o JAR com o banco já iniciado:
