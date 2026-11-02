@@ -1,5 +1,18 @@
 # Validação do sistema
 
+## Verificação da M5 — 01–02/11/2026
+
+- `clean verify` em JDK 21 e PostgreSQL 17: **407 testes aprovados**, sendo 14 unitários/MVC e 393 de integração, sem falhas, erros ou testes ignorados. A suíte abrange isolamento entre empresas/clientes, migrações, concorrência, chat e regressões da base. Após os ajustes de apresentação, os 14 testes unitários/MVC foram repetidos e o JAR atualizado com sucesso.
+- JAR iniciado em PostgreSQL exclusivo e descartável. No Chrome, dois administradores cadastraram localização e equipamentos, inclusive com o mesmo código patrimonial em empresas distintas. Clientes foram cadastrados pela interface. A jornada visitante → busca → cadastro → login preservou equipamento/datas até a solicitação.
+- Três diárias a R$ 50,00 produziram estimativa de R$ 150,00; proposta de R$ 40,00, aceite do titular e aprovação da empresa fixaram R$ 120,00. O chat trocou mensagens entre sessões sem apagar rascunho. Solicitações pendentes não retiraram unidades da busca; a aprovação bloqueou somente a unidade da empresa A. O pedido conflitante permaneceu e pôde ser recusado com motivo.
+- A diária do catálogo foi alterada para R$ 75,00 após a aprovação. Retirada e devolução mantiveram o contrato de R$ 40,00 por dia e R$ 120,00 no total. Foram conferidos os quatro eventos `REQUESTED → RESERVED → IN_USE → RETURNED`. Devolução com manutenção retirou a unidade da busca; regularização para operacional recolocou a unidade com a nova diária. O chat exibiu o prazo após encerramento.
+- A mesma conta solicitou na empresa B e manteve conversa nela após bloqueio comercial na empresa A. Histórico A permaneceu consultável e o envio de chat foi bloqueado. Cancelamento preservou o pedido B. Administrador B e outro cliente receberam negativa ao tentar acessar registros privados A; listas administrativas permaneceram separadas por empresa.
+- **44 verificações automatizadas de interface**, em 22 estados nas larguras de 1366 px e 360 px: página inicial, estados vazios, busca/detalhes, cadastro inválido, solicitação, proposta inválida/pendente, chat, aprovação, conflito, recusa, acesso negado, uso, devolução, bloqueio, histórico, cancelamento e datas inválidas. Sem rolagem horizontal, erros JavaScript ou violações nas regras WCAG 2/2.1 A/AA selecionadas pelo axe-core. Capturas representativas foram inspecionadas visualmente. Isso não equivale a auditoria completa de acessibilidade.
+- Teclado conferido no salto para o conteúdo, expansão da proposta e cancelamento, foco dos campos e região da tabela. Com JavaScript desativado, o envio de chat pelo formulário passou e a tela manteve orientação de consulta manual.
+- Correções de apresentação: página inicial explica o fluxo de busca, conversa, aceite e aprovação; coluna **Total** distingue estimativa e contrato; tela vazia de clientes contempla o cadastro pessoal; orientação de atualização automática do chat é ativada somente pelo JavaScript. Não houve alteração de regras de negócio nem nova migração.
+- O roteiro completo foi documentado em [MARKETPLACE.md](MARKETPLACE.md) e as próximas entregas, critérios e decisões abertas em [OPERACAO.md](OPERACAO.md). Relatórios Java permanecem em `target/surefire-reports` e `target/failsafe-reports`.
+- `git diff --check` e os 39 links locais da documentação passaram. Comparação por SHA-256 confirmou o `.env` e as cinco migrações existentes inalterados. O banco normal não foi usado; seu contêiner e o volume `equiprent_postgres_data` foram preservados. Processo, contêiner, volume anônimo, credenciais e arquivos temporários da M5 foram removidos.
+
 ## Verificação da M4 — 01/11/2026
 
 - `clean verify` em JDK 21 e PostgreSQL 17: **407 testes aprovados**, sendo 14 unitários/MVC e 393 de integração, sem falhas, erros ou testes ignorados. Foram acrescentados 37 cenários de chat e um de migração V4 → V5.
@@ -56,4 +69,4 @@ Os relatórios completos ficam em `target/surefire-reports` e `target/failsafe-r
 
 ## Pendências
 
-Execução remota no GitHub Actions, outros navegadores e leitores de tela devem ser conferidos separadamente. Publicação e requisitos de operação comercial permanecem no [planejamento](../PLANEJAMENTO.md).
+Execução remota no GitHub Actions, outros navegadores e leitores de tela devem ser conferidos separadamente. As verificações de navegador descritas acima foram realizadas no ambiente local descartável; não estão automatizadas no workflow atual. Publicação, análise de dependências para produção, recuperação de acesso, proteção adicional contra abuso, dados, backups/restauração e operação continuam como entregas próprias em [OPERACAO.md](OPERACAO.md), acompanhadas no [planejamento](../PLANEJAMENTO.md).

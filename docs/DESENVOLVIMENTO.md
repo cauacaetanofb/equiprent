@@ -153,7 +153,7 @@ Em Linux/macOS, use `sh ./mvnw` e exporte as variáveis do ambiente antes da exe
 
 Em um banco de teste dedicado, use contas individuais e duas empresas. Confira os seguintes cenários:
 
-O roteiro da jornada pública está em [MARKETPLACE.md](MARKETPLACE.md).
+O roteiro da jornada pública e da revisão completa, até retirada/devolução e bloqueio comercial entre empresas, está em [MARKETPLACE.md](MARKETPLACE.md). Os cenários manuais usam um banco de teste dedicado; não execute mudanças de estado em contratos reais para simular a jornada.
 
 1. Administrador A mantém somente seus equipamentos e reservas; administrador B não acessa esses registros por URL ou formulário.
 2. Cliente consulta suas reservas entre empresas, mas não acessa reservas de outro cliente.
@@ -161,6 +161,8 @@ O roteiro da jornada pública está em [MARKETPLACE.md](MARKETPLACE.md).
 4. Duas confirmações sobrepostas para uma unidade resultam em um sucesso e um conflito.
 5. Bloqueio comercial em uma empresa preserva o login e o acesso do cliente às outras.
 6. Revisar desktop e 360 px, teclado, foco, erros, moeda/datas e rolagem das tabelas.
+
+Os resultados ficam em [VALIDACOES.md](VALIDACOES.md). A preparação para clientes reais, incluindo recuperação de acesso, proteção contra abuso, dados, backups e publicação, está organizada em [OPERACAO.md](OPERACAO.md); essas entregas ainda precisam de implementação e validação próprias.
 
 ## Integração contínua
 

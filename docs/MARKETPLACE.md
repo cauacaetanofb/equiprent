@@ -67,3 +67,18 @@ O Flyway aplica a V5 ao iniciar sobre o banco existente. Solicitações, contrat
 11. Confira autor/horário, histórico e o formulário sem JavaScript. Após cancelar ou recusar, confira o prazo exibido de sete dias. O fechamento desse prazo e as condições concorrentes são exercitados pelos testes automatizados com relógio controlado.
 
 Os testes automatizados usam bancos descartáveis e incluem migrações V3 → V4 e V4 → V5, aceites obsoletos, duplicidade, concorrência, cancelamento, manutenção, desativação, CSRF, isolamento, paginação de mensagens e limites do chat. Resultados e pendências estão em [VALIDACOES.md](VALIDACOES.md).
+
+## Conferir a jornada completa — M5
+
+Faça esta conferência em um banco de teste dedicado, com duas empresas e contas individuais. Para exercitar a retirada no mesmo dia, escolha um período que comece hoje e termine daqui a dois dias. O período tem três diárias.
+
+1. Cadastre uma unidade na empresa A com diária de R$ 50,00 e outra na empresa B com diária de R$ 60,00. Preencha cidade/UF. A busca deve comparar totais iniciais de R$ 150,00 e R$ 180,00.
+2. Como visitante, siga da busca ao cadastro pessoal e ao login. Equipamento e datas devem continuar preenchidos. Solicite a unidade A; outro cliente pode solicitar o mesmo período enquanto não houver aprovação.
+3. Converse com a empresa. Envie uma proposta de R$ 40,00 por dia, aceite como titular e aprove como administrador A. O contrato deve ser de R$ 120,00. A estimativa inicial de R$ 150,00 permanece no histórico. A outra solicitação fica em conflito; a unidade B continua disponível.
+4. Como administrador A, altere a diária do catálogo para R$ 75,00. O contrato aprovado continua com diária de R$ 40,00 e total de R$ 120,00. Registre a retirada dentro do período: o estado muda para **Em uso** e o cliente deixa de ter a opção de cancelar.
+5. Registre a devolução e marque **Encaminhar equipamento para manutenção**. O estado muda para **Devolvida**, os valores permanecem e a unidade fica fora da busca pública. Após regularizar a condição para **Operacional**, ela volta ao catálogo com a nova diária. O chat informa o prazo de sete dias após a devolução.
+6. Com a mesma conta de cliente, solicite uma unidade B. Após encerrar os contratos da empresa A, bloqueie novos aluguéis desse cliente somente em A. O histórico A continua consultável e seu chat fica somente para leitura; o cliente mantém login, negociação e chat em B.
+7. Confira listas e URLs privadas com as outras contas: B não pode administrar o pedido A, e o segundo cliente não pode consultar a conversa do primeiro. Confira cancelamento/recusa, busca vazia, filtros inválidos, navegação por teclado e telas estreitas.
+8. Desative JavaScript em uma sessão de teste e confira o envio de mensagem por formulário e a consulta manual. A orientação de atualização automática deve aparecer somente quando o script estiver ativo.
+
+A página inicial explica busca, conversa, aceite e aprovação. Nas listas, a coluna **Total** identifica cada valor como **Estimativa inicial** ou **Valor contratado**. As prioridades posteriores à revisão funcional estão em [OPERACAO.md](OPERACAO.md).

@@ -19,7 +19,7 @@
             <p class="chat-body mb-0" th:text="${message.body}"></p>
         </li>
     </ol>
-    <p data-chat-status class="small text-secondary" role="status" aria-live="polite">Novas mensagens são consultadas a cada cinco segundos enquanto esta página está visível.</p>
+    <p data-chat-status class="small text-secondary" role="status" aria-live="polite">Mensagens organizadas por ordem de envio.</p>
     <p id="chat-error" data-chat-error class="text-danger" role="alert" hidden></p>
     <a data-chat-login th:href="@{/login}" hidden>Entrar novamente</a>
     <button data-chat-refresh type="button" class="btn btn-outline-secondary align-self-start mb-3" hidden>Atualizar conversa</button>

@@ -146,7 +146,10 @@
         status.textContent = 'Você está consultando mensagens anteriores. Volte às recentes para acompanhar a conversa.';
         // Envio por formulário completo retorna aos detalhes e não mistura páginas do histórico.
         refreshButton.hidden = true;
-    } else schedule();
+    } else {
+        status.textContent = 'Novas mensagens são consultadas a cada cinco segundos enquanto esta página está visível.';
+        schedule();
+    }
     if (root.dataset.historical !== 'true') messages.scrollTop = messages.scrollHeight;
     count();
 })();

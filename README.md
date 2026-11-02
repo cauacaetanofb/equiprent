@@ -1,8 +1,8 @@
 # EquipRent
 
-Sistema web de aluguel de equipamentos com busca pública entre empresas, cadastro pessoal de clientes e gestão de reservas, retiradas, devoluções e histórico, com acesso administrativo separado por empresa.
+Marketplace de aluguel de equipamentos: o cliente compara empresas e diárias, solicita um período, conversa no chat privado e aceita a proposta. A empresa aprova a reserva e registra retirada e devolução, com valores e histórico preservados e acesso administrativo separado por empresa.
 
-[Execução local](docs/DESENVOLVIMENTO.md) · [Busca e cadastro](docs/MARKETPLACE.md) · [Empresas e permissões](docs/EMPRESAS.md) · [Planejamento](PLANEJAMENTO.md) · [Validações](docs/VALIDACOES.md)
+[Execução local](docs/DESENVOLVIMENTO.md) · [Fluxo do aluguel](docs/MARKETPLACE.md) · [Empresas e permissões](docs/EMPRESAS.md) · [Planejamento](PLANEJAMENTO.md) · [Validações](docs/VALIDACOES.md) · [Preparação para uso real](docs/OPERACAO.md)
 
 ## Funcionalidades
 
@@ -79,6 +79,8 @@ A [integração contínua](.github/workflows/ci.yml) executa a suíte em JDK 21 
 
 ## Evolução do produto
 
-A separação de empresas, busca pública, localização, cadastro pessoal, solicitações, propostas, aprovação e chat privado estão implementados até a M4. A conversa atualiza a cada cinco segundos com a página visível e permite envios até sete dias após recusa, cancelamento ou devolução. A próxima etapa é validar a jornada completa e planejar a operação real, conforme a M5.
+A separação de empresas, busca pública, localização, cadastro pessoal, solicitações, propostas, aprovação e chat privado estão implementados até a M4. A conversa atualiza a cada cinco segundos com a página visível e permite envios até sete dias após recusa, cancelamento ou devolução. A M5 validou a jornada completa até retirada/devolução em ambiente isolado, revisou a apresentação e organizou as prioridades para clientes reais.
+
+A próxima implementação proposta é recuperação de senha e confirmação de e-mail, sujeita à aprovação de um escopo próprio. Proteção contra abuso, tratamento dos dados, backups, publicação e atendimento estão organizados em [docs/OPERACAO.md](docs/OPERACAO.md).
 
 Ainda não há confirmação de e-mail, recuperação de senha, pagamento, multa automática, cadastro público de empresas, carrinho ou edição do período de uma reserva. A publicação depende de configuração e operação próprias. O [planejamento](PLANEJAMENTO.md) distingue o comportamento atual das próximas entregas.

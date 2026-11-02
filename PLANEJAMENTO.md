@@ -4,7 +4,7 @@
 
 Construir um marketplace de aluguel de equipamentos: o cliente pesquisa equipamento e período, compara empresas e diárias, solicita uma reserva e negocia com a empresa pelo site. A empresa aprova a reserva e acompanha retirada, devolução e histórico.
 
-A base de locação e as etapas M1 a M4 estão implementadas: empresas e permissões, busca pública, cadastro pessoal, solicitações, propostas, aprovação e conversa privada. O cliente pesquisa equipamento e período, compara empresas, solicita, conversa e aceita condições. Somente a empresa confirma a reserva após revalidar o acordo e a disponibilidade. A próxima etapa é a revisão da jornada completa e a preparação operacional da M5.
+A base de locação e as etapas M1 a M4 estão implementadas: empresas e permissões, busca pública, cadastro pessoal, solicitações, propostas, aprovação e conversa privada. O cliente pesquisa equipamento e período, compara empresas, solicita, conversa e aceita condições. Somente a empresa confirma a reserva após revalidar o acordo e a disponibilidade. A M5 concluiu a revisão funcional da jornada até retirada/devolução e organizou a preparação operacional. A próxima implementação proposta é recuperação de senha e confirmação de e-mail, com escopo e serviço de envio ainda sujeitos à aprovação.
 
 O ambiente de execução usa apenas a configuração normal com `.env` e `compose.yaml`. O cadastro inicial de administrador é explícito, e novas empresas são provisionadas por `scripts/Register-Company.ps1`. Não há contas, equipamentos ou reservas carregados automaticamente.
 
@@ -168,7 +168,7 @@ O chat bloqueia empresa/vínculo/administrador → cliente → reserva, sem adqu
 
 ## 4. Etapas propostas para o marketplace
 
-**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. M1 a M4 foram aprovadas e implementadas; M5 continua pendente. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
+**Autorização de trabalho:** o usuário aprovou o fluxo e esta atualização documental. Antes de cada implementação, explicar mudanças, arquivos/partes afetados e verificações previstas; aguardar aprovação. M1 a M4 foram aprovadas e implementadas; a revisão e o planejamento da M5 também foram aprovados e concluídos. As entregas operacionais seguintes exigem escopos próprios. Não executar commit, push, alteração de visibilidade no GitHub ou publicação apenas por constarem no plano.
 
 ### M1 — Empresas e permissões
 
@@ -219,15 +219,17 @@ O chat bloqueia empresa/vínculo/administrador → cliente → reserva, sem adqu
 
 ### M5 — Fluxo completo e preparação para uso real (depende de M4)
 
-**Próxima etapa:** apresentar o escopo de revisão e as prioridades para operação real antes de implementar novas alterações. Publicação continua adiada.
+**Situação:** revisão funcional e organização das prioridades concluídas em 02/11/2026, conforme o escopo aprovado. As entregas para operação real estão propostas em [docs/OPERACAO.md](docs/OPERACAO.md), ainda sem implementação. Publicação continua adiada.
 
-- [ ] Validar o fluxo de duas empresas, busca pública, solicitação, negociação, aprovação e retirada/devolução em ambiente de teste isolado.
-- [ ] Atualizar apresentação do produto, README e guias para refletir somente as capacidades efetivamente implementadas.
-- [ ] Executar a suite completa em JDK 21/PostgreSQL, incluindo isolamento entre empresas, migrações, concorrência e regressões da base.
-- [ ] Revisar desktop/mobile, teclado, estados vazios, conflitos e telas da conversa; documentar verificações feitas e pendentes.
-- [ ] Definir o trabalho necessário antes de clientes reais: recuperação de acesso, proteção contra abuso, privacidade/retenção de dados, backups/restauração, TLS, segredos e operação do serviço.
+- [x] Validar o fluxo de duas empresas, busca pública, solicitação, negociação, aprovação e retirada/devolução em ambiente de teste isolado.
+- [x] Atualizar apresentação do produto, README e guias para refletir somente as capacidades efetivamente implementadas.
+- [x] Executar a suite completa em JDK 21/PostgreSQL, incluindo isolamento entre empresas, migrações, concorrência e regressões da base.
+- [x] Revisar desktop/mobile, teclado, estados vazios, conflitos e telas da conversa; documentar verificações feitas e pendentes.
+- [x] Definir o trabalho necessário antes de clientes reais: recuperação de acesso, proteção contra abuso, privacidade/retenção de dados, backups/restauração, TLS, segredos e operação do serviço.
 
 **Critério de conclusão:** jornada visitante → cliente → solicitação → conversa → acordo → aprovação → retirada → devolução demonstrada com empresas isoladas e evidências de teste. A conclusão funcional não equivale a autorização para publicação ou uso comercial; os requisitos operacionais precisam de revisão própria. Hospedagem continua adiada pelo usuário.
+
+**Entrega em 02/11/2026:** 407 testes aprovados e 44 verificações de interface no Chrome, em desktop e 360 px. A jornada foi exercitada com duas empresas, cadastro pessoal, chat, negociação de R$ 150,00 para R$ 120,00, conflito, recusa, retirada, devolução com manutenção, regularização, bloqueio comercial e histórico preservado. Ajustados textos da página inicial, total nas listas, tela vazia de clientes e orientação do chat sem JavaScript. Evidências e limitações em [docs/VALIDACOES.md](docs/VALIDACOES.md); roteiro reproduzível em [docs/MARKETPLACE.md](docs/MARKETPLACE.md).
 
 ## 5. Decisões a revisar antes das respectivas implementações
 
