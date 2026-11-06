@@ -14,7 +14,11 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
@@ -32,8 +36,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -53,11 +59,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers
 @SpringBootTest(properties = "equiprent.bootstrap.enabled=false")
 @AutoConfigureMockMvc
+@Import(EquipmentIT.TimeConfiguration.class)
 class EquipmentIT {
 
     private static final String ADMIN = "admin@catalogo.test";
     private static final String CLIENT = "cliente@catalogo.test";
     private static final Instant CREATED = Instant.parse("2026-01-01T12:00:00Z");
+    private static final Instant NOW = Instant.parse("2026-11-01T12:00:00Z");
 
     @Container
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17");
@@ -67,6 +75,14 @@ class EquipmentIT {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class TimeConfiguration {
+        @Bean @Primary
+        Clock testClock() {
+            return Clock.fixed(NOW, ZoneId.of("America/Sao_Paulo"));
+        }
     }
 
     @Autowired private MockMvc mvc;
