@@ -231,7 +231,13 @@ O chat bloqueia empresa/vínculo/administrador → cliente → reserva, sem adqu
 
 **Entrega em 02/11/2026:** 407 testes aprovados e 44 verificações de interface no Chrome, em desktop e 360 px. A jornada foi exercitada com duas empresas, cadastro pessoal, chat, negociação de R$ 150,00 para R$ 120,00, conflito, recusa, retirada, devolução com manutenção, regularização, bloqueio comercial e histórico preservado. Ajustados textos da página inicial, total nas listas, tela vazia de clientes e orientação do chat sem JavaScript. Evidências e limitações em [docs/VALIDACOES.md](docs/VALIDACOES.md); roteiro reproduzível em [docs/MARKETPLACE.md](docs/MARKETPLACE.md).
 
-## 5. Decisões a revisar antes das respectivas implementações
+## 5. Identidade visual v2
+
+A identidade v2 foi integrada às páginas em 06/11/2026: logos e fonte Inter locais, cores e componentes do kit, temas claro/escuro escolhidos pelo usuário, busca inicial por equipamento/cidade/período e resultados do catálogo em linhas. Formulários, administração, reservas e chat usam os estilos compartilhados. A pasta original do kit continua ignorada pelo Git; os recursos utilizados são versionados com a aplicação.
+
+Detalhes em [IDENTIDADE_VISUAL.md](docs/IDENTIDADE_VISUAL.md), com verificações e limites em [VALIDACOES.md](docs/VALIDACOES.md). A etapa de recuperação de senha e confirmação de e-mail permanece adiada pelo responsável pelo produto.
+
+## 6. Decisões a revisar antes das respectivas implementações
 
 O fluxo central já foi aprovado. Os pontos abaixo são propostas ou perguntas pendentes; não tratá-los como funcionalidades prontas nem decisões comerciais tomadas.
 

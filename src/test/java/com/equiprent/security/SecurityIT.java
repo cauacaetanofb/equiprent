@@ -117,6 +117,17 @@ class SecurityIT {
     }
 
     @Test
+    void shouldExposeBrandResourcesOnlyForReadingWithoutOpeningPrivateRoutes() throws Exception {
+        for (var resource : List.of("/brand/tokens.css", "/brand/fonts/Inter-variable.ttf",
+                "/brand/logos/equiprent-principal.svg", "/brand/logos/equiprent-reversa.svg",
+                "/favicon.ico", "/js/theme.js")) {
+            mvc.perform(get(resource)).andExpect(status().isOk());
+            mvc.perform(post(resource).with(csrf())).andExpect(redirectedUrl("/login"));
+        }
+        mvc.perform(get("/admin/equipamentos/novo")).andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
     void shouldExposeAccessibleNavigationAndRecoverFromEmptyCustomerPage() throws Exception {
         var admin = login(ADMIN_EMAIL, ADMIN_PASSWORD);
         mvc.perform(get("/admin/clientes").param("page", "99").session(admin))

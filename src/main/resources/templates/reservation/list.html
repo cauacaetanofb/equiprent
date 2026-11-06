@@ -68,7 +68,7 @@
                 <td><span th:text="${reservation.equipmentName}"></span><small class="d-block text-secondary" th:text="${reservation.assetCode}"></small><small class="d-block text-secondary" th:text="${reservation.companyName}"></small></td>
                 <td th:if="${administrative}"><span th:text="${reservation.customerName}"></span><small class="d-block text-secondary text-break" th:text="${reservation.customerEmail}"></small></td>
                 <td><span class="text-nowrap" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></span><span class="d-block text-nowrap" th:text="|até ${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}|"></span></td>
-                <td><span th:text="${reservation.status.label}"></span>
+                <td><span class="reservation-status" th:attr="data-status=${reservation.status.name()}" th:text="${reservation.status.label}"></span>
                     <small th:if="${reservation.approvalExpired}" class="d-block text-danger">Prazo de aprovação encerrado</small>
                     <small th:if="${reservation.overdue}" class="d-block text-danger">Devolução atrasada</small>
                     <small th:if="${reservation.returnedLate}" class="d-block text-secondary">Devolvida com atraso</small>

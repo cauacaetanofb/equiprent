@@ -25,7 +25,7 @@
     <section class="card p-4 mb-4" aria-labelledby="detalhes-titulo">
         <h2 id="detalhes-titulo" class="h5" th:text="${reservation.contracted ? 'Dados da reserva' : 'Dados da solicitação'}"></h2>
         <dl class="row mb-0">
-            <dt class="col-sm-4">Situação</dt><dd class="col-sm-8" th:text="${reservation.status.label}"></dd>
+            <dt class="col-sm-4">Situação</dt><dd class="col-sm-8"><span class="reservation-status" th:attr="data-status=${reservation.status.name()}" th:text="${reservation.status.label}"></span></dd>
             <dt th:if="${administrative}" class="col-sm-4">Cliente</dt><dd th:if="${administrative}" class="col-sm-8"><span th:text="${reservation.customerName}"></span><small class="d-block text-secondary text-break" th:text="${reservation.customerEmail}"></small></dd>
             <dt class="col-sm-4">Início</dt><dd class="col-sm-8" th:text="${#temporals.format(reservation.startDate, 'dd/MM/yyyy')}"></dd>
             <dt class="col-sm-4">Fim (inclusive)</dt><dd class="col-sm-8" th:text="${#temporals.format(reservation.endDate, 'dd/MM/yyyy')}"></dd>

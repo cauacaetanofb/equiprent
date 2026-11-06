@@ -7,14 +7,14 @@
     <a th:href="@{${filter.searchUrl(filter.page)}}">Voltar aos resultados</a>
     <div class="row g-4 mt-2">
         <section class="col-lg-7" aria-labelledby="titulo">
-            <div class="card p-4 h-100">
+            <div class="equipment-overview">
                 <p class="eyebrow text-secondary" th:text="${item.category.label}"></p>
                 <h1 id="titulo" class="h2" th:text="${item.name}"></h1>
                 <p class="lead mb-1" th:text="${item.companyName}"></p>
                 <p class="text-secondary" th:text="${item.city != null ? item.city + ' / ' + item.state : 'Localização não informada'}"></p>
                 <h2 class="h5 mt-3">Sobre o equipamento</h2>
                 <p class="equipment-description" th:text="${item.description}"></p>
-                <p class="h3 mt-auto mb-0" th:text="|R$ ${#numbers.formatDecimal(item.dailyRate, 1, 'POINT', 2, 'COMMA')} / dia|"></p>
+                <p class="catalog-price mt-4 mb-0" th:text="|R$ ${#numbers.formatDecimal(item.dailyRate, 1, 'POINT', 2, 'COMMA')} / dia|"></p>
             </div>
         </section>
         <section class="col-lg-5" aria-labelledby="periodo-titulo">

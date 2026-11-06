@@ -5,62 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Encontre equipamentos para alugar, compare empresas e consulte a disponibilidade para o seu período no EquipRent.">
     <title>EquipRent | Aluguel de equipamentos</title>
-    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
-    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <th:block th:replace="~{fragments/layout :: assets}"></th:block>
 </head>
 <body>
 <header th:replace="~{fragments/layout :: header}"></header>
 <main id="conteudo" tabindex="-1" class="container py-5">
-    <section class="hero p-4 p-md-5 mb-5" aria-labelledby="titulo">
-        <p class="eyebrow mb-3">ALUGUEL DE EQUIPAMENTOS</p>
-        <h1 id="titulo" class="display-5 fw-semibold mb-4">O equipamento certo.<br>No período que você precisa.</h1>
-        <p class="lead mb-4">Compare empresas, confira as diárias e encontre notebooks, câmeras e ferramentas para alugar.</p>
-        <form th:action="@{/catalogo}" method="get" class="row g-3 align-items-end" aria-label="Buscar equipamentos para alugar">
-            <div class="col-lg-4"><label for="home-q" class="form-label">O que você precisa?</label>
-                <input id="home-q" name="q" type="search" class="form-control" maxlength="120" placeholder="Ex.: furadeira"></div>
-            <div class="col-sm-6 col-lg-3"><label for="home-start" class="form-label">Início</label>
-                <input id="home-start" name="startDate" type="date" max="9999-12-31" class="form-control" required></div>
-            <div class="col-sm-6 col-lg-3"><label for="home-end" class="form-label">Fim (inclusive)</label>
-                <input id="home-end" name="endDate" type="date" max="9999-12-31" class="form-control" required></div>
-            <div class="col-lg-2"><button type="submit" class="btn btn-light w-100">Buscar</button></div>
-        </form>
-        <a class="link-light d-inline-block mt-3" th:href="@{/catalogo}">Explorar o catálogo sem datas</a>
+    <section class="home-intro" aria-labelledby="titulo">
+        <h1 id="titulo">Encontre o equipamento para o seu trabalho.</h1>
+        <p>Compare opções na sua cidade e converse com quem aluga.</p>
+        <div class="home-search-section">
+            <form th:action="@{/catalogo}" method="get" class="home-search" aria-label="Buscar equipamentos para alugar">
+                <div class="home-search-query">
+                    <label for="home-q" class="form-label">Equipamento</label>
+                    <input id="home-q" name="q" type="search" class="form-control" maxlength="120" placeholder="O que você precisa?">
+                </div>
+                <div class="home-search-city">
+                    <label for="home-city" class="form-label">Cidade</label>
+                    <input id="home-city" name="city" class="form-control" maxlength="120" placeholder="Todas as cidades">
+                </div>
+                <div>
+                    <label for="home-start" class="form-label">Data de início</label>
+                    <input id="home-start" name="startDate" type="date" max="9999-12-31" class="form-control" required>
+                </div>
+                <div>
+                    <label for="home-end" class="form-label">Fim (inclusive)</label>
+                    <input id="home-end" name="endDate" type="date" max="9999-12-31" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </form>
+        </div>
+        <div class="home-explore"><a th:href="@{/catalogo}">Explorar catálogo sem datas</a></div>
     </section>
-    <section id="sobre" aria-labelledby="sobre-titulo">
-        <div class="row g-4 align-items-start mb-4">
-            <div class="col-lg-5">
-                <p class="eyebrow text-secondary">DA BUSCA À DEVOLUÇÃO</p>
-                <h2 id="sobre-titulo" class="h3">Como funciona o aluguel</h2>
-            </div>
-            <div class="col-lg-7">
-                <p class="text-secondary">Encontre o equipamento, converse com a empresa e acompanhe seu pedido em um só lugar.</p>
-                <p class="mb-0">A solicitação aguarda aprovação da empresa. Depois da confirmação, a empresa registra a retirada e devolução, e você acompanha o histórico do aluguel.</p>
-            </div>
-        </div>
-        <div class="row g-4">
-            <div class="col-md-4">
-                <article class="card h-100 p-4">
-                    <span class="step mb-4" aria-hidden="true">01</span>
-                    <h3 class="h5">Encontre seu equipamento</h3>
-                    <p class="text-secondary mb-3">Escolha as datas e compare equipamentos disponíveis de diferentes empresas, com localização e diária.</p>
-                    <a th:href="@{/catalogo}">Consultar catálogo</a>
-                </article>
-            </div>
-            <div class="col-md-4">
-                <article class="card h-100 p-4">
-                    <span class="step mb-4" aria-hidden="true">02</span>
-                    <h3 class="h5">Converse e combine</h3>
-                    <p class="text-secondary mb-0">Solicite o período, converse no chat privado e aceite a proposta com os valores e condições combinados.</p>
-                </article>
-            </div>
-            <div class="col-md-4">
-                <article class="card h-100 p-4">
-                    <span class="step mb-4" aria-hidden="true">03</span>
-                    <h3 class="h5">Acompanhe seu aluguel</h3>
-                    <p class="text-secondary mb-0">Aguarde a aprovação da empresa para confirmar a reserva. Consulte o acordo e os registros de retirada e devolução.</p>
-                </article>
-            </div>
-        </div>
+    <section class="home-categories" aria-labelledby="categorias-titulo">
+        <h2 id="categorias-titulo">Explore por categoria</h2>
+        <ul class="category-grid">
+            <li th:each="category : ${categories}">
+                <a class="category-link" th:href="@{/catalogo(category=${category})}">
+                    <span th:text="${category.label}"></span><span aria-hidden="true">›</span>
+                </a>
+            </li>
+        </ul>
+    </section>
+    <section id="sobre" class="home-process" aria-labelledby="sobre-titulo">
+        <h2 id="sobre-titulo">Como funciona o aluguel</h2>
+        <ol>
+            <li>
+                <span class="step" aria-hidden="true">01</span>
+                <h3>Encontre seu equipamento</h3>
+                <p>Escolha as datas e compare empresas, localização e diária.</p>
+            </li>
+            <li>
+                <span class="step" aria-hidden="true">02</span>
+                <h3>Converse e combine</h3>
+                <p>Solicite o período, converse no chat e aceite a proposta da empresa.</p>
+            </li>
+            <li>
+                <span class="step" aria-hidden="true">03</span>
+                <h3>Acompanhe seu aluguel</h3>
+                <p>A empresa confirma a reserva. Acompanhe o acordo, a retirada e devolução.</p>
+            </li>
+        </ol>
     </section>
 </main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>

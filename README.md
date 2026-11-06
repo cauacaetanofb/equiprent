@@ -2,7 +2,7 @@
 
 Marketplace de aluguel de equipamentos: o cliente compara empresas e diárias, solicita um período, conversa no chat privado e aceita a proposta. A empresa aprova a reserva e registra retirada e devolução, com valores e histórico preservados e acesso administrativo separado por empresa.
 
-[Execução local](docs/DESENVOLVIMENTO.md) · [Fluxo do aluguel](docs/MARKETPLACE.md) · [Empresas e permissões](docs/EMPRESAS.md) · [Planejamento](PLANEJAMENTO.md) · [Validações](docs/VALIDACOES.md) · [Preparação para uso real](docs/OPERACAO.md)
+[Execução local](docs/DESENVOLVIMENTO.md) · [Fluxo do aluguel](docs/MARKETPLACE.md) · [Empresas e permissões](docs/EMPRESAS.md) · [Identidade visual](docs/IDENTIDADE_VISUAL.md) · [Planejamento](PLANEJAMENTO.md) · [Validações](docs/VALIDACOES.md) · [Preparação para uso real](docs/OPERACAO.md)
 
 ## Funcionalidades
 
@@ -19,6 +19,10 @@ Marketplace de aluguel de equipamentos: o cliente compara empresas e diárias, s
 | Usar a mesma conta em diferentes empresas | Acompanhar atrasos e compromissos afetados |
 
 Contas administrativas têm vínculo com uma empresa. Equipamentos e reservas mantêm essa associação; códigos patrimoniais podem se repetir entre empresas. Bloquear novos aluguéis de um cliente em uma empresa preserva sua conta e seu acesso às demais.
+
+## Identidade visual
+
+A interface usa a identidade v2, com fonte Inter local, logos originais e escolha manual entre tema claro e escuro. A página inicial reúne busca por equipamento, cidade e período; o catálogo apresenta empresa, localização e preço em linhas. Os recursos usados pelo site ficam em `src/main/resources/static/brand/`. A pasta original `equiprent-kit-v2/` permanece ignorada pelo Git e não é necessária para executar o projeto.
 
 ## Executar localmente
 

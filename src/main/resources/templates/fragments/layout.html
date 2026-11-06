@@ -4,31 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${title} + ' | EquipRent'">EquipRent</title>
-    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
-    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <th:block th:replace="~{fragments/layout :: assets}"></th:block>
 </head>
 <body>
-<header th:fragment="header" class="border-bottom bg-white">
+<th:block th:fragment="assets">
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="icon" th:href="@{/favicon.ico}" sizes="any">
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/brand/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</th:block>
+<header th:fragment="header" class="site-header border-bottom">
     <a class="visually-hidden-focusable p-3" href="#conteudo">Ir para o conteúdo</a>
-    <nav class="container py-4 d-flex flex-wrap align-items-center justify-content-between gap-3" aria-label="Navegação principal">
-        <a class="brand text-decoration-none" th:href="@{/}" aria-label="EquipRent — página inicial">Equip<span>Rent</span></a>
-        <div class="d-flex flex-wrap gap-3 align-items-center">
+    <nav class="container site-nav" aria-label="Navegação principal">
+        <a class="brand" th:href="@{/}" aria-label="EquipRent — página inicial">
+            <img class="brand-light" th:src="@{/brand/logos/equiprent-principal.svg}" width="409" height="100" alt="">
+            <img class="brand-dark" th:src="@{/brand/logos/equiprent-reversa.svg}" width="409" height="100" alt="">
+        </a>
+        <div class="site-nav-links">
             <a th:href="@{/catalogo}" class="nav-link" th:attr="aria-current=${activeNavigation == 'catalog' ? 'page' : null}">Buscar equipamentos</a>
             <a th:if="${isAdmin}" th:href="@{/equipamentos}" class="nav-link" th:attr="aria-current=${activeNavigation == 'equipment' ? 'page' : null}">Meus equipamentos</a>
             <a th:if="${isAdmin}" th:href="@{/admin/clientes}" class="nav-link" th:attr="aria-current=${activeNavigation == 'customers' ? 'page' : null}">Clientes</a>
             <a th:if="${isAdmin}" th:href="@{/admin/reservas}" class="nav-link" th:attr="aria-current=${activeNavigation == 'reservations' ? 'page' : null}">Reservas</a>
             <a th:if="${signedIn == true and isAdmin != true}" th:href="@{/reservas}" class="nav-link" th:attr="aria-current=${activeNavigation == 'reservations' ? 'page' : null}">Minhas reservas</a>
             <a th:if="${signedIn}" th:href="@{/conta}" class="nav-link" th:attr="aria-current=${activeNavigation == 'account' ? 'page' : null}">Minha conta</a>
-            <a th:unless="${signedIn}" th:href="@{/login}" class="btn btn-primary">Entrar</a>
+            <a th:unless="${signedIn}" th:href="@{/login}" class="btn btn-outline-secondary">Entrar</a>
             <a th:unless="${signedIn}" th:href="@{/cadastro}" class="nav-link">Criar conta</a>
             <form th:if="${signedIn}" th:action="@{/logout}" method="post">
                 <button type="submit" class="btn btn-outline-secondary">Sair</button>
             </form>
         </div>
+        <div class="theme-control" data-theme-control hidden>
+            <label class="visually-hidden" for="site-theme">Tema do site</label>
+            <select id="site-theme" class="form-select" data-theme-select>
+                <option value="light">Tema claro</option>
+                <option value="dark">Tema escuro</option>
+            </select>
+        </div>
     </nav>
 </header>
-<footer th:fragment="footer" class="container py-4 mt-5 border-top text-secondary small">
-    EquipRent · Gestão de locações
+<footer th:fragment="footer" class="container site-footer py-4 mt-5 border-top text-secondary small">
+    <span>EquipRent</span>
+    <span>Equipamento para o seu próximo trabalho.</span>
 </footer>
 </body>
 </html>

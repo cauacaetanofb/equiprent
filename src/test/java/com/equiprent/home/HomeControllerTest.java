@@ -27,6 +27,14 @@ class HomeControllerTest {
                 .andExpect(content().string(containsString("lang=\"pt-BR\"")))
                 .andExpect(content().string(containsString("EquipRent")))
                 .andExpect(content().string(containsString("retirada e devolução")))
-                .andExpect(content().string(containsString("href=\"/css/app.css\"")));
+                .andExpect(content().string(containsString("href=\"/css/app.css\"")))
+                .andExpect(content().string(containsString("href=\"/brand/tokens.css\"")))
+                .andExpect(content().string(containsString("src=\"/js/theme.js\"")))
+                .andExpect(content().string(containsString("src=\"/brand/logos/equiprent-principal.svg\"")))
+                .andExpect(content().string(containsString("src=\"/brand/logos/equiprent-reversa.svg\"")))
+                .andExpect(content().string(containsString("Tema claro")))
+                .andExpect(content().string(containsString("Tema escuro")))
+                .andExpect(content().string(containsString("name=\"city\"")))
+                .andExpect(content().string(containsString("href=\"/catalogo?category=TOOL\"")));
     }
 }

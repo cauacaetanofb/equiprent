@@ -1,5 +1,17 @@
 # Validação do sistema
 
+## Integração da identidade visual v2 — 06/11/2026
+
+- Corrigida a integração dos recursos que estavam no repositório sem serem utilizados pelos templates: o cabeçalho e a página inicial carregam tokens, fonte, logos, favicon e script de temas. O CSS compartilhado aplica a identidade às telas públicas e autenticadas. Busca inicial por cidade e atalhos das categorias reais; catálogo organizado em linhas.
+- `clean verify` em JDK 21 e PostgreSQL 17: **408 testes aprovados**, sendo 14 unitários/MVC e 394 de integração, sem falhas, erros ou testes ignorados. `HomeControllerTest` verifica as referências renderizadas aos recursos e categorias. `SecurityIT` verifica GET público nos recursos, proteção de escrita e manutenção do acesso restrito às telas administrativas. O relógio controlado de `EquipmentIT` foi preservado.
+- **117 verificações de interface no Chrome**, com Playwright e axe-core, em temas claro/escuro: página inicial, catálogo, detalhes, login, cadastro, erro 404, equipamentos, clientes, empresa, conta, solicitações, propostas, reservas e chat. Larguras de 1366 e 360 px; página inicial também em 768 e 320 px e com zoom CSS de 200%. Sem rolagem horizontal da página, erros JavaScript ou violações nas regras WCAG 2/2.1 A/AA selecionadas. Não equivale a auditoria completa de acessibilidade ou verificação do zoom nativo do navegador.
+- Percurso real no banco descartável: cadastro pessoal, busca por equipamento/cidade/datas, solicitação de três diárias a R$ 50, conversa nos dois sentidos, proposta a R$ 40, aceite, aprovação, retirada e devolução. O contrato permaneceu em R$ 120. Campos de proposta e rascunho do chat foram preservados durante a troca de tema. Busca e envio de chat também funcionaram sem JavaScript.
+- Tema claro inicial mesmo com sistema escuro; preferência persistida ao recarregar, sincronizada entre abas e operável com armazenamento bloqueado. Valores antigos ou inválidos voltam ao claro. Seletor por teclado, salto ao conteúdo, fonte local e carregamento dos logos conferidos.
+- Capturas inspecionadas visualmente. A revisão identificou e corrigiu o corte do texto do seletor no celular e a largura dos campos de data em 320 px. O pacote foi regenerado após os ajustes de CSS; a conferência final compara o CSS servido pelo aplicativo com o arquivo fonte e verifica as larguras de 320, 360, 768 e 1366 px nos dois temas.
+- `git diff --check` e os links locais da documentação conferidos. Os seis recursos distribuídos são idênticos aos originais do kit. `.env` e migrações V1–V5 preservados por comparação SHA-256; o banco e o volume normais não foram usados na revisão. O kit original continua ignorado pelo Git.
+- Pendentes: outros navegadores, dispositivos físicos, leitores de tela, zoom nativo e execução remota no GitHub Actions.
+- Após a revisão, processo Java, contêiner PostgreSQL descartável, credenciais e arquivos temporários foram removidos. Duas capturas da página inicial permanecem em `.local/brand-v2-preview-20261106/`, ignoradas pelo Git. O contêiner normal `equiprent-postgres-1` foi preservado.
+
 ## Verificação da M5 — 01–02/11/2026
 
 - `clean verify` em JDK 21 e PostgreSQL 17: **407 testes aprovados**, sendo 14 unitários/MVC e 393 de integração, sem falhas, erros ou testes ignorados. A suíte abrange isolamento entre empresas/clientes, migrações, concorrência, chat e regressões da base. Após os ajustes de apresentação, os 14 testes unitários/MVC foram repetidos e o JAR atualizado com sucesso.

@@ -1,6 +1,6 @@
 # Identidade visual do EquipRent — v2
 
-A interface segue o manual v2.0 e o kit fornecidos pelo responsável pelo produto em 02/11/2026. A base é branca ou grafite neutro, com fonte Inter, pesos moderados, separadores leves e amarelo para ações principais.
+A interface segue o manual v2.0 e o kit fornecidos pelo responsável pelo produto em 02/11/2026, com integração às páginas concluída em 06/11/2026. A base é branca ou grafite neutro, com fonte Inter, pesos moderados, separadores leves e amarelo para ações principais.
 
 ## Recursos e distribuição
 
@@ -59,3 +59,5 @@ Formulários, conta, administração, reservas, propostas, chat e erros comparti
 Use os comandos de [DESENVOLVIMENTO.md](DESENVOLVIMENTO.md). Confira a busca, os atalhos de categoria, resultados, formulários e páginas autenticadas em ambos os temas, desktop e celular. Alterne o tema com campos preenchidos, recarregue, abra outra aba e navegue pelo teclado. Confira também o tema claro e os formulários com JavaScript desativado.
 
 Resultados executados e limitações em [VALIDACOES.md](VALIDACOES.md).
+
+Após atualizar os templates ou estilos, encerre a aplicação com `Ctrl+C`, execute `scripts/Start-Local.ps1` novamente e recarregue a página com `Ctrl+F5`. Se usar o JAR diretamente, gere um novo pacote antes de reiniciar. O cabeçalho deve mostrar o logo original e o seletor de tema; o HTML deve carregar `/brand/tokens.css` e `/js/theme.js`. Ter apenas os arquivos do kit na pasta não aplica a identidade às páginas.
